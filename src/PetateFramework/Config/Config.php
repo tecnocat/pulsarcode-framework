@@ -105,9 +105,9 @@ class Config
             $cachePath   = $appPath . DIRECTORY_SEPARATOR . 'cache';
             $configPath  = $appPath . DIRECTORY_SEPARATOR . 'config';
             $logsPath    = $appPath . DIRECTORY_SEPARATOR . 'logs';
-            $publicPath  = implode(DIRECTORY_SEPARATOR, $appPath, 'Resources', 'PetateFramework', 'public');
-            $mailsPath   = implode(DIRECTORY_SEPARATOR, $appPath, 'Resources', 'PetateFramework', 'Mails');
-            $viewsPath   = implode(DIRECTORY_SEPARATOR, $appPath, 'Resources', 'PetateFramework', 'Views');
+            $publicPath  = implode(DIRECTORY_SEPARATOR, array($appPath, 'Resources', 'PetateFramework', 'public'));
+            $mailsPath   = implode(DIRECTORY_SEPARATOR, array($appPath, 'Resources', 'PetateFramework', 'Mails'));
+            $viewsPath   = implode(DIRECTORY_SEPARATOR, array($appPath, 'Resources', 'PetateFramework', 'Views'));
             $tmpPath     = $rootPath . DIRECTORY_SEPARATOR . 'tmp';
             $this->paths = array(
                 'root'   => $rootPath,

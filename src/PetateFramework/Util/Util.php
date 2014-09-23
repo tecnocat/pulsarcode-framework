@@ -410,7 +410,7 @@ class Util
 
             if (!array_key_exists($bank, (array) $UTF8_TO_ASCII))
             {
-                $bankfile = implode(DIRECTORY_SEPARATOR, __DIR__, 'data', sprintf("x%02x", $bank) . '.php');
+                $bankfile = implode(DIRECTORY_SEPARATOR, array(__DIR__, 'data', sprintf("x%02x", $bank) . '.php'));
 
                 if (file_exists($bankfile))
                 {
