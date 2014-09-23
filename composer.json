@@ -12,6 +12,11 @@
         "sami/sami"              : "v2.0.0",
         "twig/twig"              : "1.6.5"
     },
+    "autoload"         : {
+        "psr-0": {
+            "PetateFramework": "src/"
+        }
+    },
     "license"          : "MIT",
     "authors"          : [
         {
