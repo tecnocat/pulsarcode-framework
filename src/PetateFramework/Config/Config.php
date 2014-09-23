@@ -97,8 +97,30 @@ class Config
          */
         if (isset(self::$config) === false)
         {
-            $rootPath       = dirname(dirname(dirname(__DIR__)));
-            $configPath     = implode(DIRECTORY_SEPARATOR, array($rootPath, 'app', 'config'));
+            /**
+             * Generamos la configuración global de paths para su referencia
+             */
+            $rootPath    = Router::getRequest()->server->get('DOCUMENT_ROOT');
+            $appPath     = $rootPath . DIRECTORY_SEPARATOR . 'app';
+            $cachePath   = $appPath . DIRECTORY_SEPARATOR . 'cache';
+            $configPath  = $appPath . DIRECTORY_SEPARATOR . 'config';
+            $logsPath    = $appPath . DIRECTORY_SEPARATOR . 'logs';
+            $publicPath  = implode(DIRECTORY_SEPARATOR, $appPath, 'Resources', 'PetateFramework', 'public');
+            $mailsPath   = implode(DIRECTORY_SEPARATOR, $appPath, 'Resources', 'PetateFramework', 'Mails');
+            $viewsPath   = implode(DIRECTORY_SEPARATOR, $appPath, 'Resources', 'PetateFramework', 'Views');
+            $tmpPath     = $rootPath . DIRECTORY_SEPARATOR . 'tmp';
+            $this->paths = array(
+                'root'   => $rootPath,
+                'app'    => $appPath,
+                'cache'  => $cachePath,
+                'config' => $configPath,
+                'logs'   => $logsPath,
+                'public' => $publicPath,
+                'mails'  => $mailsPath,
+                'views'  => $viewsPath,
+                'tmp'    => $tmpPath,
+            );
+
             $parametersFile = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE;
             $configFile     = $configPath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
 
@@ -135,30 +157,6 @@ class Config
                 {
                     $this->$configName = $configValue;
                 }
-
-                /**
-                 * Generamos la configuración global de paths para su referencia
-                 */
-                $root        = dirname(dirname(dirname(__DIR__)));
-                $app         = $root . '/app';
-                $cache       = $app . '/cache';
-                $config      = $app . '/config';
-                $logs        = $app . '/logs';
-                $public      = $app . '/Resources/PetateFramework/public';
-                $mails       = $app . '/Resources/PetateFramework/Mails';
-                $views       = $app . '/Resources/PetateFramework/Views';
-                $tmp         = $root . '/tmp';
-                $this->paths = array(
-                    'root'   => $root,
-                    'app'    => $app,
-                    'cache'  => $cache,
-                    'config' => $config,
-                    'logs'   => $logs,
-                    'public' => $public,
-                    'mails'  => $mails,
-                    'views'  => $views,
-                    'tmp'    => $tmp,
-                );
 
                 /**
                  * Cargamos todos los YAMLs disponibles bajo su nombre como índice
