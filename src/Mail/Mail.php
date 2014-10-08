@@ -1,13 +1,13 @@
 <?php
 
-namespace PetateFramework\Mail;
+namespace Pulsarcode\Framework\Mail;
 
-use PetateFramework\Config\Config;
+use Pulsarcode\Framework\Config\Config;
 
 /**
  * Class Mail Para gestionar los mails
  *
- * @package PetateFramework\Mail
+ * @package Pulsarcode\Framework\Mail
  */
 class Mail
 {

@@ -1,8 +1,9 @@
 <?php
 
-namespace PetateFramework\Config;
+namespace Pulsarcode\Framework\Config;
 
-use PetateFramework\Router\Router;
+use Pulsarcode\Framework\Error\Error;
+use Pulsarcode\Framework\Router\Router;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -51,7 +52,7 @@ use Symfony\Component\Yaml\Yaml;
  * @see     app/config/config.yml
  * @see     app/config/parameters.yml
  *
- * @package PetateFramework\Config
+ * @package Pulsarcode\Framework\Config
  */
 class Config
 {
@@ -98,16 +99,18 @@ class Config
         if (isset(self::$config) === false)
         {
             /**
-             * Generamos la configuración global de paths para su referencia
+             * En la primera petición de configuración activamos los capturadores de errores
              */
+            Error::setupErrorHandler();
             $rootPath    = Router::getRequest()->server->get('DOCUMENT_ROOT');
             $appPath     = $rootPath . DIRECTORY_SEPARATOR . 'app';
             $cachePath   = $appPath . DIRECTORY_SEPARATOR . 'cache';
             $configPath  = $appPath . DIRECTORY_SEPARATOR . 'config';
             $logsPath    = $appPath . DIRECTORY_SEPARATOR . 'logs';
-            $publicPath  = implode(DIRECTORY_SEPARATOR, array($appPath, 'Resources', 'PetateFramework', 'public'));
-            $mailsPath   = implode(DIRECTORY_SEPARATOR, array($appPath, 'Resources', 'PetateFramework', 'Mails'));
-            $viewsPath   = implode(DIRECTORY_SEPARATOR, array($appPath, 'Resources', 'PetateFramework', 'Views'));
+            $basePath    = implode(DIRECTORY_SEPARATOR, array($appPath, 'Resources', 'Pulsarcode', 'Framework'));
+            $publicPath  = $basePath . DIRECTORY_SEPARATOR . 'public';
+            $mailsPath   = $basePath . DIRECTORY_SEPARATOR . 'Mails';
+            $viewsPath   = $basePath . DIRECTORY_SEPARATOR . 'Views';
             $tmpPath     = $rootPath . DIRECTORY_SEPARATOR . 'tmp';
             $this->paths = array(
                 'root'   => $rootPath,

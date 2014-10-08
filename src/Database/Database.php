@@ -1,14 +1,14 @@
 <?php
 
-namespace PetateFramework\Database;
+namespace Pulsarcode\Framework\Database;
 
-use PetateFramework\Config\Config;
+use Pulsarcode\Framework\Config\Config;
 use Doctrine\DBAL\DriverManager;
 
 /**
  * Class Database Para gestionar la base de datos
  *
- * @package PetateFramework\Controller
+ * @package Pulsarcode\Framework\Controller
  */
 class Database
 {
@@ -46,16 +46,22 @@ class Database
         $pass = Config::getConfig()->database[$config]['pass'];
         $base = Config::getConfig()->database[$config]['base'];
 
-        /*
         $params    = array(
-            'dbname'   => $base,
-            'user'     => $user,
-            'password' => $pass,
-            'host'     => $host,
-            'driver'   => 'sqlsrv',
+            'host'        => $host,
+            'user'        => $user,
+            'password'    => $pass,
+            'dbname'      => $base,
+            'charset'     => 'UTF-8',
+            'driverClass' => 'Lsw\\DoctrinePdoDblib\\Doctrine\\DBAL\\Driver\\PDODblib\\Driver',
         );
         $conection = DriverManager::getConnection($params);
-        */
+
+        if ($conection->isConnected() === false)
+        {
+            if ($conection->connect() !== true)
+            {
+            }
+        }
 
         return $this->connect($host, $user, $pass, $base);
     }
@@ -135,6 +141,21 @@ class Database
     }
 
     /**
+     * Retorna si ha sido posible cargar los datos en el objeto
+     *
+     * @param null $object
+     *
+     * @return bool
+     */
+    public function loadObject(&$object = null)
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadObject($object);
+    }
+
+    /**
      * Retorna los datos en un array asociativo
      *
      * @return array
@@ -142,6 +163,7 @@ class Database
     public function loadAssoc()
     {
         $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
 
         return $this->getInstance()->loadAssoc();
     }
@@ -156,6 +178,7 @@ class Database
     public function loadAssocList($key = '')
     {
         $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
 
         return $this->getInstance()->loadAssocList($key);
     }
@@ -168,6 +191,7 @@ class Database
     public function loadResult()
     {
         $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
 
         return $this->getInstance()->loadResult();
     }

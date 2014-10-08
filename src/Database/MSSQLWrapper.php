@@ -1,6 +1,6 @@
 <?php
 
-namespace PetateFramework\Database;
+namespace Pulsarcode\Framework\Database;
 
 /*
  * Actualizado para MS SQL

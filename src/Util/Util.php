@@ -1,13 +1,13 @@
 <?php
 
-namespace PetateFramework\Util;
+namespace Pulsarcode\Framework\Util;
 
-use PetateFramework\Config\Config;
+use Pulsarcode\Framework\Config\Config;
 
 /**
  * Class Util para ofrecer utilidades
  *
- * @package PetateFramework\Util
+ * @package Pulsarcode\Framework\Util
  */
 class Util
 {

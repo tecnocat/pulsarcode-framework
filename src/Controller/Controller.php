@@ -1,14 +1,14 @@
 <?php
 
-namespace PetateFramework\Controller;
+namespace Pulsarcode\Framework\Controller;
 
-use PetateFramework\Cache\Cache;
-use PetateFramework\Config\Config;
-use PetateFramework\Database\Database;
-use PetateFramework\Logger\Logger;
-use PetateFramework\Mail\Mail;
-use PetateFramework\Router\Router;
-use PetateFramework\View\View;
+use Pulsarcode\Framework\Cache\Cache;
+use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Database\Database;
+use Pulsarcode\Framework\Logger\Logger;
+use Pulsarcode\Framework\Mail\Mail;
+use Pulsarcode\Framework\Router\Router;
+use Pulsarcode\Framework\View\View;
 use Symfony\Component\HttpFoundation\ParameterBag as Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Session\Session;
 /**
  * Class Controller Para gestionar los controladores
  *
- * @package PetateFramework\Controller
+ * @package Pulsarcode\Framework\Controller
  */
 class Controller
 {

@@ -1,11 +1,11 @@
 <?php
 
-namespace PetateFramework\Logger;
+namespace Pulsarcode\Framework\Logger;
 
 /**
  * Class Logger Para gestión de logs
  *
- * @package PetateFramework\Logger
+ * @package Pulsarcode\Framework\Logger
  */
 class Logger
 {
