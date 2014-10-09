@@ -102,28 +102,36 @@ class Config
              * En la primera petición de configuración activamos los capturadores de errores
              */
             Error::setupErrorHandler();
-            $rootPath    = Router::getRequest()->server->get('DOCUMENT_ROOT');
-            $appPath     = $rootPath . DIRECTORY_SEPARATOR . 'app';
-            $cachePath   = $appPath . DIRECTORY_SEPARATOR . 'cache';
-            $configPath  = $appPath . DIRECTORY_SEPARATOR . 'config';
-            $logsPath    = $appPath . DIRECTORY_SEPARATOR . 'logs';
-            $basePath    = implode(DIRECTORY_SEPARATOR, array($appPath, 'Resources', 'Pulsarcode', 'Framework'));
-            $publicPath  = $basePath . DIRECTORY_SEPARATOR . 'public';
-            $mailsPath   = $basePath . DIRECTORY_SEPARATOR . 'Mails';
-            $viewsPath   = $basePath . DIRECTORY_SEPARATOR . 'Views';
-            $tmpPath     = $rootPath . DIRECTORY_SEPARATOR . 'tmp';
-            $this->paths = array(
+
+            /**
+             * TODO: Usar un método mejor para saber dónde está el directorio raíz
+             */
+            $rootPath   = dirname(dirname(dirname(dirname(dirname(dirname(dirname(__DIR__)))))));
+            $appPath    = $rootPath . DIRECTORY_SEPARATOR . 'app';
+            $cachePath  = $appPath . DIRECTORY_SEPARATOR . 'cache';
+            $configPath = $appPath . DIRECTORY_SEPARATOR . 'config';
+            $logsPath   = $appPath . DIRECTORY_SEPARATOR . 'logs';
+
+            /**
+             * TODO: Eliminar esta porquería y usar algo dinámico ASAP
+             */
+            $bundlePath     = implode(DIRECTORY_SEPARATOR, array($rootPath, 'src', 'Autocasion', 'MainBundle'));
+            $publicPath     = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'public'));
+            $mailsPath      = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'views', 'mail'));
+            $webPath        = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'views', 'web'));
+            $this->paths    = array(
                 'root'   => $rootPath,
                 'app'    => $appPath,
                 'cache'  => $cachePath,
                 'config' => $configPath,
                 'logs'   => $logsPath,
+                'bundle' => $bundlePath,
                 'public' => $publicPath,
-                'mails'  => $mailsPath,
-                'views'  => $viewsPath,
-                'tmp'    => $tmpPath,
+                'views'  => array(
+                    'mails' => $mailsPath,
+                    'web'   => $webPath,
+                ),
             );
-
             $parametersFile = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE;
             $configFile     = $configPath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
 

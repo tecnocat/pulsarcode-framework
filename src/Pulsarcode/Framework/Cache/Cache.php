@@ -50,7 +50,7 @@ class Cache
      *
      * @var string DEFAULT_CACHE_NAMESPACE
      */
-    const DEFAULT_CACHE_NAMESPACE = 'AutoCache';
+    const DEFAULT_CACHE_NAMESPACE = 'PulsarcodeFrameworkCache';
 
     /**
      * Listado de proveedores activos

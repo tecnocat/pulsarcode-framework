@@ -130,7 +130,7 @@ class View
      */
     public function setTemplate($template)
     {
-        $pathViews = Config::getConfig()->paths['views'] . DIRECTORY_SEPARATOR;
+        $pathViews = Config::getConfig()->paths['views']['web'] . DIRECTORY_SEPARATOR;
 
         if (isset($this->controller))
         {
@@ -239,7 +239,7 @@ class View
      */
     public function fetch()
     {
-        $pathViews = Config::getConfig()->paths['views'] . DIRECTORY_SEPARATOR;
+        $pathViews = Config::getConfig()->paths['views']['web'] . DIRECTORY_SEPARATOR;
 
         if (isset($this->template) === false)
         {
@@ -261,7 +261,7 @@ class View
                 }
 
                 ob_start();
-                include $pathViews . $this->template;
+                require $pathViews . $this->template;
 
                 return ob_get_clean();
 

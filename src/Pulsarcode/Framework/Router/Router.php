@@ -33,9 +33,14 @@ class Router
     const ROUTES_FILE = 'routes.yml';
 
     /**
-     * Cadena por defecto para buscar parámetro en $_GET y $_POST
+     * Patrón para los namespaces de los controladores
      */
-    const DEFAULT_MISSING_PARAM = 'Default missing param';
+    const CONTROLLER_NAME_PATTERN = 'Pulsarcode\\Framework\\Controller\\%sController';
+
+    /**
+     * Patrón para buscar namespaces de controladores
+     */
+    const CONTROLLER_PATH_REGEXPR = '/^Pulsarcode\\Framework\\Controller\\[a-zA-Z]+Controller$/';
 
     /**
      * @var array Valores de parámetros internos del Request a excluir
@@ -439,7 +444,27 @@ class Router
         }
 
         list($controller, $action) = explode('::', $match['controller']);
-        $controllerName = sprintf('Pulsarcode\\Framework\\Controller\\%sController', $controller);
+
+        /**
+         * Router Autoloader
+         */
+        spl_autoload_register(
+            function ($className) use ($controller)
+            {
+                if (preg_match(self::CONTROLLER_PATH_REGEXPR, $className) !== false)
+                {
+                    $bundlePath     = Config::getConfig()->paths['bundle'];
+                    $controllerPath = $bundlePath . DIRECTORY_SEPARATOR . 'Controller';
+                    $controllerFile = $controllerPath . DIRECTORY_SEPARATOR . sprintf('%sController.php', $controller);
+
+                    require_once $controllerFile;
+
+                    return true;
+                }
+            }
+        );
+
+        $controllerName = sprintf(self::CONTROLLER_NAME_PATTERN, $controller);
         /** @var Controller $controllerClass */
         $controllerClass = new $controllerName();
         $controllerClass->dispatch($match);
