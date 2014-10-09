@@ -312,7 +312,7 @@ class Error
         }
         else
         {
-            include_once Config::getConfig()->paths['views'] . '/404.html.php';
+            require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
         exit;
@@ -339,7 +339,7 @@ class Error
         }
         else
         {
-            include_once Config::getConfig()->paths['views'] . '/404.html.php';
+            require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
         exit;
@@ -366,7 +366,7 @@ class Error
         }
         else
         {
-            include_once Config::getConfig()->paths['views'] . '/404.html.php';
+            require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
         exit;
@@ -517,7 +517,7 @@ class Error
                          */
                         else
                         {
-                            include Config::getConfig()->paths['views'] . '/error-table.html.php';
+                            require Config::getConfig()->paths['views']['web'] . '/error-table.html.php';
                         }
                     }
                 }
