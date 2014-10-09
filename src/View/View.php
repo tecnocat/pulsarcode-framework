@@ -1,16 +1,16 @@
 <?php
 
-namespace PetateFramework\View;
+namespace Pulsarcode\Framework\View;
 
-use PetateFramework\Config\Config;
-use PetateFramework\Error\Error;
+use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Error\Error;
 use Twig_Environment;
 use Twig_Loader_Filesystem;
 
 /**
  * Class View Para gestionar las vistas
  *
- * @package PetateFramework\View
+ * @package Pulsarcode\Framework\View
  */
 class View
 {

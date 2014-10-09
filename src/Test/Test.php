@@ -1,11 +1,11 @@
 <?php
 
-namespace PetateFramework\Test;
+namespace Pulsarcode\Framework\Test;
 
 /**
  * Class TestCommentsInBlock
  *
- * @package PetateFramework\Test
+ * @package Pulsarcode\Framework\Test
  */
 class TestCommentsInBlock
 {
@@ -288,7 +288,7 @@ class TestCommentsInBlock
 /**
  * Class TestCommentsInLine
  *
- * @package PetateFramework\Test
+ * @package Pulsarcode\Framework\Test
  */
 class TestCommentsInLine
 {
@@ -461,7 +461,7 @@ class TestCommentsInLine
 /**
  * Class TestCommentsInTwoLines
  *
- * @package PetateFramework\Test
+ * @package Pulsarcode\Framework\Test
  */
 class TestCommentsInTwoLines
 {

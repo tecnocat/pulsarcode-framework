@@ -1,15 +1,15 @@
 <?php
 
-namespace PetateFramework\Error;
+namespace Pulsarcode\Framework\Error;
 
-use PetateFramework\Config\Config;
-use PetateFramework\Mail\Mail;
-use PetateFramework\Router\Router;
+use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Mail\Mail;
+use Pulsarcode\Framework\Router\Router;
 
 /**
  * Class Error Para gestionar los errores
  *
- * @package PetateFramework\Error
+ * @package Pulsarcode\Framework\Error
  */
 class Error
 {
@@ -82,20 +82,29 @@ class Error
     private static $allowedEnvironments = array('loc', 'des');
 
     /**
+     * @var bool Control para los capturadores de errores
+     */
+    private static $dispatched;
+
+    /**
      * Configuración para capturar todos los tipos de errores
      */
     public static function setupErrorHandler()
     {
-        /**
-         * Configuración obligatoria necesaria
-         */
-        ini_set('error_reporting', false);
-        ini_set('display_errors', false);
-        ini_set('display_startup_errors', false);
+        if (isset(self::$dispatched) === false)
+        {
+            /**
+             * Configuración obligatoria necesaria
+             */
+            ini_set('error_reporting', false);
+            ini_set('display_errors', false);
+            ini_set('display_startup_errors', false);
 
-        self::setShutdownHandler();
-        self::setErrorHandler();
-        self::setExceptionHandler();
+            self::setShutdownHandler();
+            self::setErrorHandler();
+            self::setExceptionHandler();
+            self::$dispatched = true;
+        }
     }
 
     /**

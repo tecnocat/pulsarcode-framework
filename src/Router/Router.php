@@ -1,13 +1,13 @@
 <?php
 
-namespace PetateFramework\Router;
+namespace Pulsarcode\Framework\Router;
 
-use PetateFramework\Cache\Cache;
-use PetateFramework\Config\Config;
-use PetateFramework\Controller\Controller;
-use PetateFramework\Error\Error;
-use PetateFramework\Util\Util;
-use PetateFramework\View\View;
+use Pulsarcode\Framework\Cache\Cache;
+use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Controller\Controller;
+use Pulsarcode\Framework\Error\Error;
+use Pulsarcode\Framework\Util\Util;
+use Pulsarcode\Framework\View\View;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\Routing\Exception\MethodNotAllowedException;
@@ -23,7 +23,7 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Class Router Para gestionar las rutas
  *
- * @package PetateFramework\Router
+ * @package Pulsarcode\Framework\Router
  */
 class Router
 {
@@ -95,6 +95,10 @@ class Router
     {
         if (isset(self::$request) === false)
         {
+            /**
+             * En la primera petición del request activamos los capturadores de errores
+             */
+            Error::setupErrorHandler();
             self::$request = Request::createFromGlobals();
             self::$request->setSession(new Session());
         }
@@ -281,22 +285,50 @@ class Router
      * Redirecciona a un path dado
      *
      * @param string $path El path a redirigir
-     * @param int    $type El tipo de redirect
+     * @param int    $code El tipo de redirect
      */
-    public static function redirect($path, $type = 301)
+    public static function redirect($path, $code = 301)
     {
-        switch ($type)
+        $status = array(
+            300 => 'Multiple Choices',
+            301 => 'Moved Permanently',
+            302 => 'Found',
+            303 => 'See Other',
+            304 => 'Not Modified',
+            305 => 'Use Proxy',
+            306 => 'Switch Proxy',
+            307 => 'Temporary Redirect',
+            308 => 'Permanent Redirect',
+        );
+
+        if (isset($status[$code]) !== false)
         {
-            case 301:
-                header('HTTP/1.1 301 Moved Permanently');
-                break;
+            switch ($code)
+            {
+                case 300:
+                case 301:
+                case 302:
+                case 304:
+                    $version = '1.0';
+                    break;
 
-            default:
-                trigger_error('Código de redirección no implementado: ' . $type, E_USER_ERROR);
+                case 303:
+                case 305 :
+                case 306 :
+                case 307 :
+                case 308 :
+                    $version = '1.1';
+                    break;
+            }
+
+            header('HTTP/' . $version . ' ' . $code . ' ' . $status[$code]);
+            header('Location: ' . $path, true, $code);
+            die;
         }
-
-        header('Location: ' . $path, true, $type);
-        die;
+        else
+        {
+            trigger_error('Código de redirección no implementado: ' . $code, E_USER_ERROR);
+        }
     }
 
     /**
@@ -407,7 +439,7 @@ class Router
         }
 
         list($controller, $action) = explode('::', $match['controller']);
-        $controllerName = sprintf('PetateFramework\\Controller\\%sController', $controller);
+        $controllerName = sprintf('Pulsarcode\\Framework\\Controller\\%sController', $controller);
         /** @var Controller $controllerClass */
         $controllerClass = new $controllerName();
         $controllerClass->dispatch($match);

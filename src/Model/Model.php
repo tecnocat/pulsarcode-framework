@@ -1,14 +1,14 @@
 <?php
 
-namespace PetateFramework\Model;
+namespace Pulsarcode\Framework\Model;
 
-use PetateFramework\Cache\Cache;
-use PetateFramework\Database\MSSQLWrapper;
+use Pulsarcode\Framework\Cache\Cache;
+use Pulsarcode\Framework\Database\MSSQLWrapper;
 
 /**
  * Class Model Para gestionar los modelos
  *
- * @package PetateFramework\Model
+ * @package Pulsarcode\Framework\Model
  */
 class Model
 {

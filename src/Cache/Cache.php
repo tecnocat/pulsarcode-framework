@@ -1,9 +1,9 @@
 <?php
 
-namespace PetateFramework\Cache;
+namespace Pulsarcode\Framework\Cache;
 
-use PetateFramework\Config\Config;
-use PetateFramework\Router\Router;
+use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Router\Router;
 use Doctrine\Common\Cache as DoctrineCache;
 
 /**
@@ -34,7 +34,7 @@ use Doctrine\Common\Cache as DoctrineCache;
  *
  * @see     app/config/config.yml Para comprobar la lista de proveedores disponibles
  *
- * @package PetateFramework\Cache
+ * @package Pulsarcode\Framework\Cache
  */
 class Cache
 {
