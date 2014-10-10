@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "eb63474c8a49027124cb7008c0b1fd1b",
+    "hash": "7d033d49cb4044ecd06ed94500c9b479",
     "packages": [
         {
             "name": "doctrine/annotations",
@@ -828,6 +828,59 @@
             "time": "2014-09-25 09:53:56"
         },
         {
+            "name": "symfony/dom-crawler",
+            "version": "v2.5.5",
+            "target-dir": "Symfony/Component/DomCrawler",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/DomCrawler.git",
+                "reference": "a2804ec76442a9d0a3bb25f99a7830ba24743e07"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/DomCrawler/zipball/a2804ec76442a9d0a3bb25f99a7830ba24743e07",
+                "reference": "a2804ec76442a9d0a3bb25f99a7830ba24743e07",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.3"
+            },
+            "require-dev": {
+                "symfony/css-selector": "~2.0"
+            },
+            "suggest": {
+                "symfony/css-selector": ""
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "2.5-dev"
+                }
+            },
+            "autoload": {
+                "psr-0": {
+                    "Symfony\\Component\\DomCrawler\\": ""
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Symfony Community",
+                    "homepage": "http://symfony.com/contributors"
+                },
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
+                }
+            ],
+            "description": "Symfony DomCrawler Component",
+            "homepage": "http://symfony.com",
+            "time": "2014-09-22 09:14:18"
+        },
+        {
             "name": "symfony/filesystem",
             "version": "v2.5.5",
             "target-dir": "Symfony/Component/Filesystem",
@@ -1195,7 +1248,7 @@
     ],
     "prefer-stable": true,
     "platform": {
-        "php": ">=5.5.0"
+        "php": ">=5.3.0"
     },
     "platform-dev": [
 
