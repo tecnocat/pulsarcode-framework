@@ -532,7 +532,7 @@ class Error
     {
         if (Config::getConfig()->error_reporting['write'])
         {
-            if (!empty(self::$errors) && in_array(Config::getConfig()->environment, self::$allowedEnvironments))
+            if (!empty(self::$errors))
             {
                 $errorLog = Config::getConfig()->paths['logs'] . DIRECTORY_SEPARATOR . self::ERROR_LOG_FILE;
 
