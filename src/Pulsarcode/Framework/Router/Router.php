@@ -34,13 +34,10 @@ class Router
 
     /**
      * Patrón para los namespaces de los controladores
+     *
+     * TODO: Quitar la dependencia del nombre del bundle
      */
-    const CONTROLLER_NAME_PATTERN = 'Pulsarcode\\Framework\\Controller\\%sController';
-
-    /**
-     * Patrón para buscar namespaces de controladores
-     */
-    const CONTROLLER_PATH_REGEXPR = '/^Pulsarcode\\Framework\\Controller\\[a-zA-Z]+Controller$/';
+    const CONTROLLER_NAME_PATTERN = 'Autocasion\\MainBundle\\Controller\\%sController';
 
     /**
      * @var array Valores de parámetros internos del Request a excluir
@@ -444,25 +441,6 @@ class Router
         }
 
         list($controller, $action) = explode('::', $match['controller']);
-
-        /**
-         * Router Autoloader
-         */
-        spl_autoload_register(
-            function ($className) use ($controller)
-            {
-                if (preg_match(self::CONTROLLER_PATH_REGEXPR, $className) !== false)
-                {
-                    $bundlePath     = Config::getConfig()->paths['bundle'];
-                    $controllerPath = $bundlePath . DIRECTORY_SEPARATOR . 'Controller';
-                    $controllerFile = $controllerPath . DIRECTORY_SEPARATOR . sprintf('%sController.php', $controller);
-
-                    require_once $controllerFile;
-
-                    return true;
-                }
-            }
-        );
 
         $controllerName = sprintf(self::CONTROLLER_NAME_PATTERN, $controller);
         /** @var Controller $controllerClass */
