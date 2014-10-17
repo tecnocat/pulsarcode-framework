@@ -55,7 +55,7 @@ class View
     public function __construct()
     {
         $debug      = (in_array(Config::getConfig()->environment, array('loc', 'des')));
-        $loader     = new Twig_Loader_Filesystem(Config::getConfig()->paths['views']);
+        $loader     = new Twig_Loader_Filesystem(Config::getConfig()->paths['views']['web']);
         $options    = array(
             'debug'            => $debug, // Debug sólo en local y desarrollo
             'strict_variables' => $debug, // Petes de variables ocultos en producción
