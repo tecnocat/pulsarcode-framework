@@ -248,10 +248,21 @@ class Error
     public static function mail($subject, $body = '', $toCopy = null)
     {
         $environment = Config::getConfig()->environment;
-        $ip          = Router::getRequest()->server->get('SERVER_ADDR');
-        $host        = Router::getRequest()->getHttpHost();
-        $uri         = Router::getRequest()->getRequestUri();
-        $info        = print_r(
+
+        if (php_sapi_name() !== 'cli')
+        {
+            $ip   = Router::getRequest()->server->get('SERVER_ADDR');
+            $host = Router::getRequest()->getHttpHost();
+            $uri  = Router::getRequest()->getRequestUri();
+        }
+        else
+        {
+            $ip   = Router::getRequest()->server->get('SSH_CONNECTION');
+            $host = Router::getRequest()->server->get('HOSTNAME');
+            $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
+        }
+
+        $info = print_r(
             array(
                 '$_GET'     => Router::getRequest()->query->all(),
                 '$_POST'    => Router::getRequest()->request->all(),
@@ -392,10 +403,21 @@ class Error
         }
 
         $environment = Config::getConfig()->environment;
-        $ip          = Router::getRequest()->server->get('SERVER_ADDR');
-        $host        = Router::getRequest()->getHttpHost();
-        $uri         = Router::getRequest()->getRequestUri();
-        $info        = print_r(
+
+        if (php_sapi_name() !== 'cli')
+        {
+            $ip   = Router::getRequest()->server->get('SERVER_ADDR');
+            $host = Router::getRequest()->getHttpHost();
+            $uri  = Router::getRequest()->getRequestUri();
+        }
+        else
+        {
+            $ip   = Router::getRequest()->server->get('SSH_CONNECTION');
+            $host = Router::getRequest()->server->get('HOSTNAME');
+            $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
+        }
+
+        $info    = print_r(
             array(
                 '$_GET'     => Router::getRequest()->query->all(),
                 '$_POST'    => Router::getRequest()->request->all(),
@@ -406,7 +428,7 @@ class Error
             ),
             true
         );
-        $message     = sprintf(
+        $message = sprintf(
             '[%s] %s:%s %s',
             $errorData['errorLevel'],
             $errorData['errorFile'],
@@ -532,7 +554,7 @@ class Error
     {
         if (Config::getConfig()->error_reporting['write'])
         {
-            if (!empty(self::$errors) && in_array(Config::getConfig()->environment, self::$allowedEnvironments))
+            if (!empty(self::$errors))
             {
                 $errorLog = Config::getConfig()->paths['logs'] . DIRECTORY_SEPARATOR . self::ERROR_LOG_FILE;
 
