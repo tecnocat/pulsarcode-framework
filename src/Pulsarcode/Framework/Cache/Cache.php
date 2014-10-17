@@ -506,7 +506,7 @@ class Cache
                 {
                     if (!empty($providerObjects))
                     {
-                        include Config::getConfig()->paths['views'] . '/cache-table.html.php';
+                        include Config::getConfig()->paths['views']['web'] . '/cache-table.html.php';
                     }
                 }
             }

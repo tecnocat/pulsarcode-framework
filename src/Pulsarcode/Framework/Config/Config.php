@@ -117,7 +117,7 @@ class Config
              */
             $bundlePath     = implode(DIRECTORY_SEPARATOR, array($rootPath, 'src', 'Autocasion', 'MainBundle'));
             $publicPath     = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'public'));
-            $mailsPath      = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'views', 'mail'));
+            $mailPath       = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'views', 'mail'));
             $webPath        = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'views', 'web'));
             $this->paths    = array(
                 'root'   => $rootPath,
@@ -128,8 +128,8 @@ class Config
                 'bundle' => $bundlePath,
                 'public' => $publicPath,
                 'views'  => array(
-                    'mails' => $mailsPath,
-                    'web'   => $webPath,
+                    'mail' => $mailPath,
+                    'web'  => $webPath,
                 ),
             );
             $parametersFile = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE;

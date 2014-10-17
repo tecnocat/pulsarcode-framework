@@ -169,7 +169,7 @@ class Mail
      */
     public function setTemplate($template, $controller = null)
     {
-        $pathMails = Config::getConfig()->paths['mails'] . DIRECTORY_SEPARATOR;
+        $pathMails = Config::getConfig()->paths['views']['mail'] . DIRECTORY_SEPARATOR;
 
         if (isset($controller))
         {
@@ -203,7 +203,7 @@ class Mail
     public function send()
     {
         $envinronment = Config::getConfig()->environment;
-        $pathMails    = Config::getConfig()->paths['mails'] . DIRECTORY_SEPARATOR;
+        $pathMails    = Config::getConfig()->paths['views']['mail'] . DIRECTORY_SEPARATOR;
 
         /**
          * En desarrollo mostramos información de la TPL que usa el email
