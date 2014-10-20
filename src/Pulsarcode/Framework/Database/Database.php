@@ -285,7 +285,7 @@ class Database
                 $params['host'],
                 $params['user'],
                 $params['password'],
-                $params['database']
+                $params['dbname']
             );
         }
 
