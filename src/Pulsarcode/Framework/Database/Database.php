@@ -2,8 +2,8 @@
 
 namespace Pulsarcode\Framework\Database;
 
-use Pulsarcode\Framework\Config\Config;
 use Doctrine\DBAL\DriverManager;
+use Pulsarcode\Framework\Config\Config;
 
 /**
  * Class Database Para gestionar la base de datos
@@ -28,42 +28,27 @@ class Database
     private $queryArguments = array();
 
     /**
-     * Devuelve una instancia de la conexión a la base de datos
+     * Devuelve una instancia de la conexión a la base de datos usando MSSQLWrapper
      *
-     * @param string $config Nombre de la configuración de conexión
+     * @param string $connectionName Nombre de la configuración de conexión
      *
      * @return MSSQLWrapper
      */
-    public function getInstance($config = 'autocasion')
+    public function getInstance($connectionName = 'mssql')
     {
-        if (isset(Config::getConfig()->database[$config]) === false)
-        {
-            trigger_error('No existe la configuración de conexión ' . $config, E_USER_ERROR);
-        }
+        return $this->getOldWrappedConnection($this->getConnectionParams($connectionName));
+    }
 
-        $host = Config::getConfig()->database[$config]['host'];
-        $user = Config::getConfig()->database[$config]['user'];
-        $pass = Config::getConfig()->database[$config]['pass'];
-        $base = Config::getConfig()->database[$config]['base'];
-
-        $params    = array(
-            'host'        => $host,
-            'user'        => $user,
-            'password'    => $pass,
-            'dbname'      => $base,
-            'charset'     => 'UTF-8',
-            'driverClass' => 'Lsw\\DoctrinePdoDblib\\Doctrine\\DBAL\\Driver\\PDODblib\\Driver',
-        );
-        $conection = DriverManager::getConnection($params);
-
-        if ($conection->isConnected() === false)
-        {
-            if ($conection->connect() !== true)
-            {
-            }
-        }
-
-        return $this->connect($host, $user, $pass, $base);
+    /**
+     * Devuelve una instancia de la conexión a la base de datos usando DBAL
+     *
+     * @param string $connectionName
+     *
+     * @return \Doctrine\DBAL\Driver\Connection
+     */
+    public function getManager($connectionName = 'mysql')
+    {
+        return $this->getDbalConnection($this->getConnectionParams($connectionName));
     }
 
     /**
@@ -197,25 +182,111 @@ class Database
     }
 
     /**
-     * Establece la instancia de la conexión a la base de datos
+     * Devuelve los parámetros de conexión para la configuración dada
      *
-     * @param null $server   Servidor de la base de datos
-     * @param null $user     Usuario de la base de datos
-     * @param null $password Contraseña de la base de datos
-     * @param null $database Nombre de la base de datos
+     * @param string $conectionName Nombre de la configuración a usar
+     *
+     * @return array Parámetros de la conexión
+     */
+    private function getConnectionParams($conectionName)
+    {
+        $result = array();
+
+        if (isset(Config::getConfig()->database[$conectionName]) !== false)
+        {
+            $server      = Config::getConfig()->database[$conectionName]['server'];
+            $port        = Config::getConfig()->database[$conectionName]['port'];
+            $username    = Config::getConfig()->database[$conectionName]['username'];
+            $password    = Config::getConfig()->database[$conectionName]['password'];
+            $database    = Config::getConfig()->database[$conectionName]['database'];
+            $charset     = Config::getConfig()->database[$conectionName]['charset'];
+            $driver      = Config::getConfig()->database[$conectionName]['driver'];
+            $driverClass = Config::getConfig()->database[$conectionName]['driver_class'];
+
+            $result = array(
+                'host'     => $server,
+                'port'     => $port,
+                'user'     => $username,
+                'password' => $password,
+                'dbname'   => $database,
+                'charset'  => $charset,
+            );
+
+            if (isset($driver) !== false)
+            {
+                $result['driver'] = $driver;
+            }
+            elseif (isset($driverClass) !== false)
+            {
+                $result['driverClass'] = $driverClass;
+            }
+            else
+            {
+                trigger_error('No se ha definido Driver para la conexión ' . $conectionName, E_USER_ERROR);
+            }
+        }
+        else
+        {
+            trigger_error('No existe la configuración de conexión ' . $conectionName, E_USER_ERROR);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Devuelve una instancia de la conexión con la base de datos usando DBAL
+     *
+     * @param array $params Parámetros de la conexión para DBAL
+     *
+     * @return \Doctrine\DBAL\Driver\Connection
+     * @throws \Doctrine\DBAL\DBALException
+     */
+    private function getDbalConnection($params)
+    {
+        $connectionKey = md5(implode($params));
+
+        if (isset(self::$connections[$connectionKey]) === false)
+        {
+            $dbalConnection = DriverManager::getConnection($params);
+
+            if ($dbalConnection->isConnected() === false)
+            {
+                if ($dbalConnection->connect() === true)
+                {
+                    self::$connections[$connectionKey] = $dbalConnection->getWrappedConnection();
+                }
+                else
+                {
+                    trigger_error('Imposible conectar usando DBAL', E_USER_ERROR);
+                }
+            }
+        }
+
+        return self::$connections[$connectionKey];
+    }
+
+    /**
+     * Devuelve una instancia de la conexión con la base de datos usando MSSQLWrapper
+     *
+     * @param array $params Parámetros de la conexión para DBAL
      *
      * @return MSSQLWrapper
      */
-    private function connect($server = null, $user = null, $password = null, $database = null)
+    private function getOldWrappedConnection($params)
     {
-        $connectionKey = md5($server . $user . $password . $database);
+        $connectionKey = md5(implode($params));
 
         if (isset(self::$connections[$connectionKey]) === false)
         {
             /**
              * TODO: Refactorizar esta porquería a un DBAL wrapper en condiciones
              */
-            self::$connections[$connectionKey] = new MSSQLWrapper($server, $user, $password, $database);
+            self::$connections[$connectionKey] = new MSSQLWrapper(
+                $params['host'],
+                $params['user'],
+                $params['password'],
+                $params['database']
+            );
         }
 
         return self::$connections[$connectionKey];
