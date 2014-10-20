@@ -93,7 +93,6 @@ class Config
          * Cargamos la configuración sólo la primera vez en estático
          * Así evitamos penalizar el rendimiento por lectura a disco
          *
-         * TODO: Generar un archivo procesado para no reemplazar variables
          * TODO: Meter configuración en cache
          */
         if (isset(self::$config) === false)
@@ -102,6 +101,12 @@ class Config
              * En la primera petición de configuración activamos los capturadores de errores
              */
             Error::setupErrorHandler();
+
+            /**
+             * Cargamos el Yaml parser para cargar los archivos
+             */
+            $yaml              = new Yaml();
+            $parametersContent = array();
 
             /**
              * TODO: Usar un método mejor para saber dónde está el directorio raíz
@@ -115,11 +120,11 @@ class Config
             /**
              * TODO: Eliminar esta porquería y usar algo dinámico ASAP
              */
-            $bundlePath     = implode(DIRECTORY_SEPARATOR, array($rootPath, 'src', 'Autocasion', 'MainBundle'));
-            $publicPath     = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'public'));
-            $mailPath       = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'views', 'mail'));
-            $webPath        = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'views', 'web'));
-            $this->paths    = array(
+            $bundlePath  = implode(DIRECTORY_SEPARATOR, array($rootPath, 'src', 'Autocasion', 'MainBundle'));
+            $publicPath  = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'public'));
+            $mailPath    = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'views', 'mail'));
+            $webPath     = implode(DIRECTORY_SEPARATOR, array($bundlePath, 'Resources', 'views', 'web'));
+            $this->paths = array(
                 'root'   => $rootPath,
                 'app'    => $appPath,
                 'cache'  => $cachePath,
@@ -132,56 +137,85 @@ class Config
                     'web'  => $webPath,
                 ),
             );
-            $parametersFile = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE;
-            $configFile     = $configPath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
 
-            if (file_exists($parametersFile) === false)
+            $parametersYamlFile   = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE;
+            $parametersCacheFile  = $cachePath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
+            $parametersConfigFile = $configPath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
+
+            if (file_exists($parametersYamlFile) === false)
             {
-                trigger_error('Falta archivo de parametros ' . $parametersFile, E_USER_ERROR);
+                trigger_error('Falta archivo de parametros ' . $parametersYamlFile, E_USER_ERROR);
             }
-            elseif (file_exists($configFile) === false)
+            elseif (file_exists($parametersConfigFile) === false)
             {
-                trigger_error('Falta archivo de configuracion ' . $configFile, E_USER_ERROR);
+                trigger_error('Falta archivo de configuracion ' . $parametersConfigFile, E_USER_ERROR);
             }
-            else
+            elseif (file_exists($parametersCacheFile) === false)
             {
-                $yaml             = new Yaml();
-                $parametersParsed = $yaml->parse($parametersFile);
-                $configContent    = file_get_contents($configFile);
+                $parametersContent = $yaml->parse($parametersYamlFile);
+                $configContent     = file_get_contents($parametersConfigFile);
 
                 /**
                  * Este metodo es un poco ortodoxo pero YAML no soporta variables estilo Symfony
                  */
-                foreach ($parametersParsed as $parameterName => $parameterValue)
+                foreach ($parametersContent as $parameterName => $parameterValue)
                 {
                     /**
                      * Corrector de cambios de booleanos a 0 o 1
                      */
-                    $parameterValue = ($parameterValue === true) ? 'true' : $parameterValue;
-                    $parameterValue = ($parameterValue === false) ? 'false' : $parameterValue;
+                    switch (true)
+                    {
+                        // bool
+                        case ($parameterValue === true):
+                            $parameterValue = 'true';
+                            break;
+
+                        // bool
+                        case ($parameterValue === false):
+                            $parameterValue = 'false';
+                            break;
+
+                        // null
+                        case (isset($parameterValue) === false):
+                            $parameterValue = '~';
+                            break;
+
+                        // string
+                        case (is_numeric($parameterValue) === false):
+                            $parameterValue = "'$parameterValue'";
+                            break;
+                    }
+
                     $configContent  = str_replace("%$parameterName%", $parameterValue, $configContent);
                 }
 
-                $configParsed = $yaml->parse($configContent);
+                $parametersContent = $yaml->parse($configContent);
+                file_put_contents($parametersCacheFile, $configContent);
+            }
+            else
+            {
+                $parametersContent = $yaml->parse($parametersCacheFile);
+            }
 
-                foreach ($configParsed as $configName => $configValue)
+            foreach ($parametersContent as $parametersName => $parametersValue)
+            {
+                $this->$parametersName = $parametersValue;
+            }
+
+            /**
+             * Cargamos todos los YAMLs disponibles bajo su nombre como índice
+             *
+             * TODO: Meterlo en archivos de cache como la configuración
+             */
+            foreach (glob($this->paths['config'] . '/*.yml') as $yamlFile)
+            {
+                $pathinfo = pathinfo($yamlFile);
+                $basename = $pathinfo['basename'];
+                $yamlName = $pathinfo['filename'];
+
+                if (!in_array($basename, array(self::CONFIG_FILE, self::PARAMETERS_FILE, Router::ROUTES_FILE)))
                 {
-                    $this->$configName = $configValue;
-                }
-
-                /**
-                 * Cargamos todos los YAMLs disponibles bajo su nombre como índice
-                 */
-                foreach (glob($this->paths['config'] . '/*.yml') as $yamlFile)
-                {
-                    $pathinfo = pathinfo($yamlFile);
-                    $basename = $pathinfo['basename'];
-                    $yamlName = $pathinfo['filename'];
-
-                    if (!in_array($basename, array(self::CONFIG_FILE, self::PARAMETERS_FILE, Router::ROUTES_FILE)))
-                    {
-                        $this->$yamlName = $yaml->parse($yamlFile);
-                    }
+                    $this->$yamlName = $yaml->parse($yamlFile);
                 }
             }
         }
