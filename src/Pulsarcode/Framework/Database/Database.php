@@ -36,7 +36,7 @@ class Database
      */
     public function getInstance($connectionName = 'mssql')
     {
-        return $this->getOldWrappedConnection($this->getConnectionParams($connectionName));
+        return $this->getOldWrappedConnection(self::getConnectionParams($connectionName));
     }
 
     /**
@@ -48,7 +48,7 @@ class Database
      */
     public function getManager($connectionName = 'mysql')
     {
-        return $this->getDbalConnection($this->getConnectionParams($connectionName));
+        return $this->getDbalConnection(self::getConnectionParams($connectionName));
     }
 
     /**
@@ -188,7 +188,7 @@ class Database
      *
      * @return array Parámetros de la conexión
      */
-    private function getConnectionParams($conectionName)
+    public static function getConnectionParams($conectionName)
     {
         $result = array();
 
