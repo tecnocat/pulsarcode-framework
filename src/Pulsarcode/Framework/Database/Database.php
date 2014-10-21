@@ -238,7 +238,7 @@ class Database
      *
      * @param array $params Parámetros de la conexión para DBAL
      *
-     * @return \Doctrine\DBAL\Driver\Connection
+     * @return \Doctrine\DBAL\Connection
      * @throws \Doctrine\DBAL\DBALException
      */
     private function getDbalConnection($params)
