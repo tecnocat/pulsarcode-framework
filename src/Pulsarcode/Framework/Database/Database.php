@@ -44,7 +44,7 @@ class Database
      *
      * @param string $connectionName
      *
-     * @return \Doctrine\DBAL\Driver\Connection
+     * @return \Doctrine\DBAL\Connection
      */
     public function getManager($connectionName = 'mysql')
     {
