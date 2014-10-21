@@ -253,7 +253,7 @@ class Database
             {
                 if ($dbalConnection->connect() === true)
                 {
-                    self::$connections[$connectionKey] = $dbalConnection->getWrappedConnection();
+                    self::$connections[$connectionKey] = $dbalConnection;
                 }
                 else
                 {
