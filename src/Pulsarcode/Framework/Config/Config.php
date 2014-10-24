@@ -112,12 +112,6 @@ class Config
              * TODO: Usar un método mejor para saber dónde está el directorio raíz
              */
             $rootPath   = dirname(dirname(dirname(dirname(dirname(dirname(dirname(__DIR__)))))));
-
-            /**
-             * TODO: Solucionar este bugfix de forma mas elegante, es por compatibilidad con capistrano
-             */
-            $rootPath   = str_replace('shared', 'current', $rootPath);
-
             $appPath    = $rootPath . DIRECTORY_SEPARATOR . 'app';
             $cachePath  = $appPath . DIRECTORY_SEPARATOR . 'cache';
             $configPath = $appPath . DIRECTORY_SEPARATOR . 'config';
