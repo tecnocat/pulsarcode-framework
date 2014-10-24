@@ -35,9 +35,39 @@ class Router
     /**
      * Patrón para los namespaces de los controladores
      *
-     * TODO: Quitar la dependencia del nombre del bundle
+     * TODO: Quitar la dependencia del nombre del bundle, hacerlo dinámico buscando en src/
      */
     const CONTROLLER_NAME_PATTERN = 'Autocasion\\MainBundle\\Controller\\%sController';
+
+    /**
+     * Patrón para importar un recurso CSS
+     */
+    const STATIC_CSS_IMPORT_PATTERN = '<link rel="stylesheet" type="text/css"%s href="%s" />';
+
+    /**
+     * Patrón para insertar un contenido CSS
+     */
+    const STATIC_CSS_INSERT_PATTERN = '<style type="text/css" %s>%s</style>';
+
+    /**
+     * Patrón para importar un recurso JS
+     */
+    const STATIC_JS_IMPORT_PATTERN = '<script type="text/javascript"%s src="%s"></script>';
+
+    /**
+     * Patrón para insertar un contenido JS
+     */
+    const STATIC_JS_INSERT_PATTERN = '<script type="text/javascript"%s>%s</script>';
+
+    /**
+     * Patrón para importar un recurso IMG
+     */
+    const STATIC_IMG_IMPORT_PATTERN = '<img%s src="%s" />';
+
+    /**
+     * Patrón para insertar un contenido IMG
+     */
+    const STATIC_IMG_INSERT_PATTERN = '<img%s src="%s" />';
 
     /**
      * @var array Valores de parámetros internos del Request a excluir
@@ -413,6 +443,234 @@ class Router
     }
 
     /**
+     * Obtiene un CSS para importarlo por URL o insertarlo en el HTML
+     *
+     * @param string $path       Ruta relativa al host de estáticos
+     * @param string $mode       Modo a usar para incluir el estático en el HTML
+     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para importarlo o insertarlo
+     */
+    public static function getCss($path, $mode = 'import', array $attributes = array())
+    {
+        return self::getStatic('css', $path, $mode, $attributes);
+    }
+
+    /**
+     * Obtiene un JS para importarlo por URL o insertarlo en el HTML
+     *
+     * @param string $path       Ruta relativa al host de estáticos
+     * @param string $mode       Modo a usar para incluir el estático en el HTML
+     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para importarlo o insertarlo
+     */
+    public static function getJs($path, $mode = 'import', array $attributes = array())
+    {
+        return self::getStatic('js', $path, $mode, $attributes);
+    }
+
+    /**
+     * Obtiene un IMG para importarlo por URL o insertarlo en el HTML
+     *
+     * @param string $path       Ruta relativa al host de estáticos
+     * @param string $mode       Modo a usar para incluir el estático en el HTML
+     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para importarlo o insertarlo
+     */
+    public static function getImg($path, $mode = 'import', array $attributes = array())
+    {
+        return self::getStatic('img', $path, $mode, $attributes);
+    }
+
+    /**
+     * Obtiene una URL absoluta con el protocolo, host, path y argumentos especificados
+     *
+     * @param string $host   Host para construir la URL (css|js|img|www)
+     * @param string $path   Ruta relativa al host especificado
+     * @param array  $query  Array de parámetros para concatenar a la URL
+     * @param string $scheme Protocolo usado para construir la URL
+     *
+     * @return string URL bien formada
+     */
+    public static function getUrl($host, $path, array $query = array(), $scheme = 'http')
+    {
+        $host  = Config::getConfig()->host[$host];
+        $query = (empty($query) === false) ? '?' . http_build_query($query) : '';
+
+        return sprintf('%s://%s%s%s', $scheme, $host, $path, $query);
+    }
+
+    /**
+     * Obtiene un código HTML para importar o insertar un archivo estático
+     *
+     * @param string $type       Tipo de estático a importar o insertar (css|js|img)
+     * @param string $path       Ruta relativa al host de estáticos
+     * @param string $mode       Modo a usar para incluir el estático en el HTML
+     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para importarlo o insertarlo
+     */
+    private static function getStatic($type, $path, $mode, array $attributes)
+    {
+        if (in_array($type, array('css', 'js', 'img')) !== false)
+        {
+            $url = parse_url($path);
+
+            if (isset($url['scheme']) !== false)
+            {
+                $result = self::importStatic($type, $path, $attributes);
+            }
+            else
+            {
+                $file = Config::getConfig()->paths['public'] . $path;
+
+                /**
+                 * TODO: Backward compatibility
+                 */
+                $root     = Config::getConfig()->paths['root'];
+                $rootPath = $root . $path;
+                if (file_exists($file) === false && file_exists($rootPath) !== false)
+                {
+                    $source = str_replace($root, '', $rootPath);
+                    $target = str_replace($root, '', $file);
+                    trigger_error('Estático sin migrar de ' . $source . ' a ' . $target, E_USER_WARNING);
+                    $file = $rootPath;
+                }
+
+                if (file_exists($file) !== false)
+                {
+                    switch ($mode)
+                    {
+                        case 'import':
+                            $version = Config::getConfig()->deploy['version'];
+                            $src     = self::getUrl($type, $path, array('v' => $version));
+                            $result  = self::importStatic($type, $src, $attributes);
+                            break;
+
+                        case 'insert':
+                            $content = file_get_contents($file);
+
+                            /**
+                             * TODO: Algunos navegadores tienen límite de tamaño embebido, hacer sólo por debajo de 32KB
+                             */
+                            if ($type == 'img')
+                            {
+                                $mimeType = pathinfo($file, PATHINFO_EXTENSION);
+                                $content  = sprintf('data:image/%s;base64,%s', $mimeType, base64_encode($content));
+                            }
+
+                            $result = self::insertStatic($type, $content, $attributes);
+                            break;
+
+                        default:
+                            trigger_error(
+                                'Método de estático no soportado (' . $type . ', ' . $path . ', ' . $mode . ')',
+                                E_USER_ERROR
+                            );
+                            break;
+                    }
+                }
+                else
+                {
+                    trigger_error('Estático no encontrado: ' . $path . ' -> ' . $file, E_USER_ERROR);
+                }
+            }
+        }
+        else
+        {
+            trigger_error('Tipo de estático no soportado (' . $type . ', ' . $path . ', ' . $mode . ')', E_USER_ERROR);
+        }
+
+        return $result . PHP_EOL;
+    }
+
+    /**
+     * Devuelve el código HTML para importar un recurso estático
+     *
+     * @param string $type       Tipo de recurso estático (css|js|img)
+     * @param string $url        URL del recurso estático
+     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para importar el recurso estático
+     */
+    private static function importStatic($type, $url, array $attributes)
+    {
+        switch ($type)
+        {
+            case 'css':
+                $result = sprintf(self::STATIC_CSS_IMPORT_PATTERN, self::parseAttributes($attributes), $url);
+                break;
+
+            case 'js':
+                $result = sprintf(self::STATIC_JS_IMPORT_PATTERN, self::parseAttributes($attributes), $url);
+                break;
+
+            case 'img':
+                $result = sprintf(self::STATIC_IMG_IMPORT_PATTERN, self::parseAttributes($attributes), $url);
+                break;
+
+            default:
+                trigger_error('Importación de recurso estático desconocida: ' . $type, E_USER_ERROR);
+                break;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Devuelve el código HTML para insertar un recurso estático
+     *
+     * @param string $type       Tipo de recurso estático (css|js|img)
+     * @param string $content    Contenido del recurso estático
+     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para insertar el recurso estático
+     */
+    private static function insertStatic($type, $content, array $attributes)
+    {
+        switch ($type)
+        {
+            case 'css':
+                $result = sprintf(self::STATIC_CSS_INSERT_PATTERN, self::parseAttributes($attributes), $content);
+                break;
+
+            case 'js':
+                $result = sprintf(self::STATIC_JS_INSERT_PATTERN, self::parseAttributes($attributes), $content);
+                break;
+
+            case 'img':
+                $result = sprintf(self::STATIC_IMG_INSERT_PATTERN, self::parseAttributes($attributes), $content);
+                break;
+
+            default:
+                trigger_error('Inserción de recurso estático desconocida: ' . $type, E_USER_ERROR);
+                break;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Devuelve una cadena HTML para representar valor="attributo"
+     *
+     * @param array $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para insertar los atributos
+     */
+    private static function parseAttributes(array $attributes)
+    {
+        foreach ($attributes as $attribute => &$data)
+        {
+            $data = implode(' ', (array) $data);
+            $data = $attribute . '="' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '"';
+        }
+
+        return ($attributes) ? ' ' . implode(' ', $attributes) : '';
+    }
+
+    /**
      * Devuelve los argumentos de la ruta coincidente
      *
      * @param string $path Ruta para buscar su coincidencia
@@ -437,7 +695,7 @@ class Router
         }
         elseif (strpos($match['controller'], '::') === false)
         {
-            trigger_error('No reconozco la acción de la petición (' . $match['controller'] . ')', E_USER_ERROR);
+            trigger_error('No reconozco la acción de la petición(' . $match['controller'] . ')', E_USER_ERROR);
         }
 
         list($controller, $action) = explode('::', $match['controller']);
@@ -512,14 +770,14 @@ class Router
              */
             if (isset($defaults['controller']) && strpos($defaults['controller'], '::') === false)
             {
-                trigger_error(sprintf('La ruta %s tiene controlador pero no acción', $path), E_USER_ERROR);
+                trigger_error(sprintf('La ruta % s tiene controlador pero no acción', $path), E_USER_ERROR);
             }
             /**
              * Validación de los métodos de la ruta
              */
             elseif (empty($methods))
             {
-                trigger_error(sprintf('La ruta %s no tiene ningun método configurado', $path), E_USER_ERROR);
+                trigger_error(sprintf('La ruta % s no tiene ningun método configurado', $path), E_USER_ERROR);
             }
 
             $route = new Route($path, $defaults, $requirements, $options, $host, $schemes, $methods);
@@ -545,7 +803,7 @@ class Router
      */
     private static function cacheRoutes(RouteCollection $routeCollection)
     {
-        $routesCacheFile   = Config::getConfig()->paths['cache'] . DIRECTORY_SEPARATOR . self::ROUTES_FILE . '.php';
+        $routesCacheFile   = Config::getConfig()->paths['cache'] . DIRECTORY_SEPARATOR . self::ROUTES_FILE . ' . php';
         $routesCacheConfig = array('class' => 'RouterUrlMatcher');
         $phpMatcherDumper  = new PhpMatcherDumper($routeCollection);
 
@@ -569,17 +827,17 @@ class Router
         if (isset($defaults['controller']))
         {
             list($controller, $action) = explode('::', $defaults['controller']);
-            $name = sprintf('controller_%s_%s_%s', $controller, $action, implode('_', $methods));
+            $name = sprintf('controller_ % s_ % s_ % s', $controller, $action, implode('_', $methods));
         }
         elseif (isset($defaults['redirect']))
         {
             $type = $defaults['redirect']['type'];
             $path = $defaults['redirect']['path'];
-            $name = sprintf('redirect_%s_%s', $type, $path);
+            $name = sprintf('redirect_ % s_ % s', $type, $path);
         }
         else
         {
-            $name = sprintf('path_%s', $path);
+            $name = sprintf('path_ % s', $path);
         }
 
         return Util::sanitizeString($name, '_');
