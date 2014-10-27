@@ -695,7 +695,7 @@ class Router
         }
         elseif (strpos($match['controller'], '::') === false)
         {
-            trigger_error('No reconozco la acción de la petición(' . $match['controller'] . ')', E_USER_ERROR);
+            trigger_error('No reconozco la acción de la petición (' . $match['controller'] . ')', E_USER_ERROR);
         }
 
         list($controller, $action) = explode('::', $match['controller']);
@@ -770,14 +770,14 @@ class Router
              */
             if (isset($defaults['controller']) && strpos($defaults['controller'], '::') === false)
             {
-                trigger_error(sprintf('La ruta % s tiene controlador pero no acción', $path), E_USER_ERROR);
+                trigger_error(sprintf('La ruta %s tiene controlador pero no acción', $path), E_USER_ERROR);
             }
             /**
              * Validación de los métodos de la ruta
              */
             elseif (empty($methods))
             {
-                trigger_error(sprintf('La ruta % s no tiene ningun método configurado', $path), E_USER_ERROR);
+                trigger_error(sprintf('La ruta %s no tiene ningun método configurado', $path), E_USER_ERROR);
             }
 
             $route = new Route($path, $defaults, $requirements, $options, $host, $schemes, $methods);
@@ -803,7 +803,7 @@ class Router
      */
     private static function cacheRoutes(RouteCollection $routeCollection)
     {
-        $routesCacheFile   = Config::getConfig()->paths['cache'] . DIRECTORY_SEPARATOR . self::ROUTES_FILE . ' . php';
+        $routesCacheFile   = Config::getConfig()->paths['cache'] . DIRECTORY_SEPARATOR . self::ROUTES_FILE . '.php';
         $routesCacheConfig = array('class' => 'RouterUrlMatcher');
         $phpMatcherDumper  = new PhpMatcherDumper($routeCollection);
 
@@ -827,17 +827,17 @@ class Router
         if (isset($defaults['controller']))
         {
             list($controller, $action) = explode('::', $defaults['controller']);
-            $name = sprintf('controller_ % s_ % s_ % s', $controller, $action, implode('_', $methods));
+            $name = sprintf('controller_%s_%s_%s', $controller, $action, implode('_', $methods));
         }
         elseif (isset($defaults['redirect']))
         {
             $type = $defaults['redirect']['type'];
             $path = $defaults['redirect']['path'];
-            $name = sprintf('redirect_ % s_ % s', $type, $path);
+            $name = sprintf('redirect_%s_%s', $type, $path);
         }
         else
         {
-            $name = sprintf('path_ % s', $path);
+            $name = sprintf('path_%s', $path);
         }
 
         return Util::sanitizeString($name, '_');
