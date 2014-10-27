@@ -139,16 +139,37 @@ class Config
             );
 
             $parametersYamlFile   = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE;
+            $parametersDistFile   = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE . '.dist';
             $parametersCacheFile  = $cachePath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
             $parametersConfigFile = $configPath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
 
             if (file_exists($parametersYamlFile) === false)
             {
-                trigger_error('Falta archivo de parametros ' . $parametersYamlFile, E_USER_ERROR);
+                /**
+                 * TODO: Mostrar en una template para verlo mejor
+                 */
+                die(sprintf('<h1>Falta archivo de parámetros %s</h1>', $parametersYamlFile));
             }
             elseif (file_exists($parametersConfigFile) === false)
             {
-                trigger_error('Falta archivo de configuracion ' . $parametersConfigFile, E_USER_ERROR);
+                /**
+                 * TODO: Mostrar en una template para verlo mejor
+                 */
+                die(sprintf('<h1>Falta archivo de configuracion %s</h1>', $parametersConfigFile));
+            }
+            elseif ($this->checkParameters($parametersYamlFile, $parametersDistFile, $parametersErrors) === false)
+            {
+                /**
+                 * TODO: Mostrar en una template para verlo mejor
+                 */
+                $output = '';
+
+                foreach ($parametersErrors as $errorTitle => $errorContent)
+                {
+                    $output .= sprintf('<h2>%s</h2><pre>%s</pre>', $errorTitle, implode(PHP_EOL, $errorContent));
+                }
+
+                die(sprintf('<h1>Error en configuración de parameters.yml:</h1>%s', $output));
             }
             elseif (file_exists($parametersCacheFile) === false)
             {
@@ -186,7 +207,7 @@ class Config
                             break;
                     }
 
-                    $configContent  = str_replace("%$parameterName%", $parameterValue, $configContent);
+                    $configContent = str_replace("%$parameterName%", $parameterValue, $configContent);
                 }
 
                 $parametersContent = $yaml->parse($configContent);
@@ -257,5 +278,45 @@ class Config
     public function __get($configName)
     {
         return (isset(self::$config[$configName])) ? self::$config[$configName] : null;
+    }
+
+    /**
+     * Comprueba y marca errores si los parámetros de parameters.yml.dist no están en parameters.yml
+     *
+     * @param string $parametersYamlFile Archivo de parámetros del usuario
+     * @param string $parametersDistFile Archivo de parámetros del framework
+     * @param array  $parametersErrors   Errores detectados en el archivo de parámetros
+     *
+     * @return bool Devuelve false si se detectan errores
+     */
+    private function checkParameters($parametersYamlFile, $parametersDistFile, &$parametersErrors = array())
+    {
+        $yaml        = new Yaml();
+        $yamlContent = $yaml->parse($parametersYamlFile);
+        $distContent = $yaml->parse($parametersDistFile);
+        $diffContent = array_diff_key($distContent, $yamlContent);
+
+        if (empty($diffContent) === false)
+        {
+            $parametersErrors['Parámetros que faltan:'] = array_keys($diffContent);
+        }
+
+        foreach ($distContent as $distKey => $distValue)
+        {
+            if (isset($yamlContent[$distKey]) !== false && $distValue !== null)
+            {
+                $distType = gettype($distValue);
+                $yamlType = gettype($yamlContent[$distKey]);
+
+                if ($distType !== $yamlType)
+                {
+                    $errorMessage = sprintf('%s: Debería ser "%s" pero es "%s"', $distKey, $distType, $yamlType);
+
+                    $parametersErrors['Parámetros que no son del mismo tipo:'][] = $errorMessage;
+                }
+            }
+        }
+
+        return (empty($parametersErrors));
     }
 }

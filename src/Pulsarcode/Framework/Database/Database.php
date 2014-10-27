@@ -141,7 +141,22 @@ class Database
     }
 
     /**
-     * Retorna los datos en un array asociativo
+     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como objetos
+     *
+     * @param string $key
+     *
+     * @return array
+     */
+    public function loadObjectList($key = '')
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadObjectList($key);
+    }
+
+    /**
+     * Retorna los datos en un array asociativo como arrays
      *
      * @return array
      */
@@ -154,7 +169,7 @@ class Database
     }
 
     /**
-     * Retorna los datos en un array asociativo
+     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como arrays
      *
      * @param string $key
      *
