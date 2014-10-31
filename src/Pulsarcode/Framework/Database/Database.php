@@ -258,7 +258,7 @@ class Database
      */
     private function getDbalConnection($params)
     {
-        $connectionKey = md5(implode($params));
+        $connectionKey = md5(__FUNCTION__ . implode($params));
 
         if (isset(self::$connections[$connectionKey]) === false)
         {
@@ -289,7 +289,7 @@ class Database
      */
     private function getOldWrappedConnection($params)
     {
-        $connectionKey = md5(implode($params));
+        $connectionKey = md5(__FUNCTION__ . implode($params));
 
         if (isset(self::$connections[$connectionKey]) === false)
         {
