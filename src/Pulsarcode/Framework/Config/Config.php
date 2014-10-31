@@ -2,7 +2,7 @@
 
 namespace Pulsarcode\Framework\Config;
 
-use Pulsarcode\Framework\Error\Error;
+use Pulsarcode\Framework\Core\Core;
 use Pulsarcode\Framework\Router\Router;
 use Symfony\Component\Yaml\Yaml;
 
@@ -54,7 +54,7 @@ use Symfony\Component\Yaml\Yaml;
  *
  * @package Pulsarcode\Framework\Config
  */
-class Config
+class Config extends Core
 {
     /**
      * Nombre del archivo de configuración
@@ -89,6 +89,8 @@ class Config
      */
     public function __construct()
     {
+        parent::__construct();
+
         /**
          * Cargamos la configuración sólo la primera vez en estático
          * Así evitamos penalizar el rendimiento por lectura a disco
@@ -97,11 +99,6 @@ class Config
          */
         if (isset(self::$config) === false)
         {
-            /**
-             * En la primera petición de configuración activamos los capturadores de errores
-             */
-            Error::setupErrorHandler();
-
             /**
              * Cargamos el Yaml parser para cargar los archivos
              */
@@ -148,14 +145,35 @@ class Config
                 /**
                  * TODO: Mostrar en una template para verlo mejor
                  */
-                die(sprintf('<h1>Falta archivo de parámetros %s</h1>', $parametersYamlFile));
+                if (php_sapi_name() == 'cli')
+                {
+                    $pattern = PHP_EOL . 'Missing parameters file %s' . PHP_EOL;
+                }
+                else
+                {
+                    $pattern = '<h1>Missing parameters file %s</h1>';
+                }
+
+                die(sprintf($pattern, $parametersYamlFile));
             }
+            /**
+             * TODO: Meter el config.yml en el Framework y hacerlo extendible
+             */
             elseif (file_exists($parametersConfigFile) === false)
             {
                 /**
                  * TODO: Mostrar en una template para verlo mejor
                  */
-                die(sprintf('<h1>Falta archivo de configuracion %s</h1>', $parametersConfigFile));
+                if (php_sapi_name() == 'cli')
+                {
+                    $pattern = PHP_EOL . 'Missing config file %s' . PHP_EOL;
+                }
+                else
+                {
+                    $pattern = '<h1>Missing config file %s</h1>';
+                }
+
+                die(sprintf($pattern, $parametersConfigFile));
             }
             elseif ($this->checkParameters($parametersYamlFile, $parametersDistFile, $parametersErrors) === false)
             {
@@ -164,12 +182,28 @@ class Config
                  */
                 $output = '';
 
-                foreach ($parametersErrors as $errorTitle => $errorContent)
+                if (php_sapi_name() == 'cli')
                 {
-                    $output .= sprintf('<h2>%s</h2><pre>%s</pre>', $errorTitle, implode(PHP_EOL, $errorContent));
+                    $pattern = PHP_EOL . '%s' . PHP_EOL . PHP_EOL . '%s' . PHP_EOL;
+                }
+                else
+                {
+                    $pattern = '<h2>%s</h2><pre>%s</pre>';
                 }
 
-                die(sprintf('<h1>Error en configuración de parameters.yml:</h1>%s', $output));
+                foreach ($parametersErrors as $errorTitle => $errorContent)
+                {
+                    $output .= sprintf($pattern, $errorTitle, implode(PHP_EOL, $errorContent));
+                }
+
+                if (php_sapi_name() == 'cli')
+                {
+                    die(sprintf(PHP_EOL . 'Parameters error:' . PHP_EOL . '%s', $output));
+                }
+                else
+                {
+                    die(sprintf('<h1>Parameters error:</h1>%s', $output));
+                }
             }
             elseif (file_exists($parametersCacheFile) === false)
             {
@@ -298,7 +332,7 @@ class Config
 
         if (empty($diffContent) === false)
         {
-            $parametersErrors['Parámetros que faltan:'] = array_keys($diffContent);
+            $parametersErrors['Missing parameters:'] = array_keys($diffContent);
         }
 
         foreach ($distContent as $distKey => $distValue)
@@ -310,9 +344,9 @@ class Config
 
                 if ($distType !== $yamlType)
                 {
-                    $errorMessage = sprintf('%s: Debería ser "%s" pero es "%s"', $distKey, $distType, $yamlType);
+                    $errorMessage = sprintf('%s: must be "%s" but is "%s"', $distKey, $distType, $yamlType);
 
-                    $parametersErrors['Parámetros que no son del mismo tipo:'][] = $errorMessage;
+                    $parametersErrors['Missmatch parameters type:'][] = $errorMessage;
                 }
             }
         }

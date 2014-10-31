@@ -3,6 +3,7 @@
 namespace Pulsarcode\Framework\View;
 
 use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Core\Core;
 use Pulsarcode\Framework\Error\Error;
 use Twig_Environment;
 use Twig_Loader_Filesystem;
@@ -12,7 +13,7 @@ use Twig_Loader_Filesystem;
  *
  * @package Pulsarcode\Framework\View
  */
-class View
+class View extends Core
 {
     /**
      * @var null Controlador de la petición
@@ -54,6 +55,8 @@ class View
      */
     public function __construct()
     {
+        parent::__construct();
+
         $debug      = (in_array(Config::getConfig()->environment, array('loc', 'des')));
         $loader     = new Twig_Loader_Filesystem(Config::getConfig()->paths['views']['web']);
         $options    = array(

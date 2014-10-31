@@ -4,6 +4,7 @@ namespace Pulsarcode\Framework\Controller;
 
 use Pulsarcode\Framework\Cache\Cache;
 use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Core\Core;
 use Pulsarcode\Framework\Database\Database;
 use Pulsarcode\Framework\Logger\Logger;
 use Pulsarcode\Framework\Mail\Mail;
@@ -18,7 +19,7 @@ use Symfony\Component\HttpFoundation\Session\Session;
  *
  * @package Pulsarcode\Framework\Controller
  */
-class Controller
+class Controller extends Core
 {
     /**
      * @var Config Configuración de la aplicación
@@ -70,6 +71,8 @@ class Controller
      */
     public function __construct()
     {
+        parent::__construct();
+
         $this->config   = Config::getConfig();
         $this->request  = Router::getRequest();
         $this->session  = Router::getRequest()->getSession();

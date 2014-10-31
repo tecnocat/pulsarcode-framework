@@ -2,12 +2,14 @@
 
 namespace Pulsarcode\Framework\Logger;
 
+use Pulsarcode\Framework\Core\Core;
+
 /**
- * Class Logger Para gestión de logs
+ * Class Logger Para gestionar los registros
  *
  * @package Pulsarcode\Framework\Logger
  */
-class Logger
+class Logger extends Core
 {
     /**
      * @var string Registro para procesar

@@ -4,13 +4,14 @@ namespace Pulsarcode\Framework\Database;
 
 use Doctrine\DBAL\DriverManager;
 use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Core\Core;
 
 /**
  * Class Database Para gestionar la base de datos
  *
  * @package Pulsarcode\Framework\Controller
  */
-class Database
+class Database extends Core
 {
     /**
      * @var array Conexiones de bases de datos

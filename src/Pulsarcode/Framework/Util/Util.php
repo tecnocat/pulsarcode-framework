@@ -3,13 +3,14 @@
 namespace Pulsarcode\Framework\Util;
 
 use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Core\Core;
 
 /**
  * Class Util para ofrecer utilidades
  *
  * @package Pulsarcode\Framework\Util
  */
-class Util
+class Util extends Core
 {
     /**
      * Genera una cadena libre de símbolos extraños
@@ -783,15 +784,15 @@ class Util
 
         if (is_array($dump) && isset($dump[$variableKey]))
         {
-            $referenceVariableKey  = & $dump[$variableKey];
-            $referenceVariableName = & $dump[$variableName];
+            $referenceVariableKey  = &$dump[$variableKey];
+            $referenceVariableName = &$dump[$variableName];
             $variableType          = ucfirst(gettype($referenceVariableKey));
             echo $tab . $info . '<span style="color:#a2a2a2">' . $variableType . '</span> = <span style="color:#e87800;">&amp;' . $referenceVariableName . '</span><br>';
         }
         else
         {
             $dump     = array($variableKey => $dump, $variableName => $reference);
-            $variable = & $dump[$variableKey];
+            $variable = &$dump[$variableKey];
 
             $variableType = gettype($variable);
             $span         = '&nbsp;<span style="color:#a2a2a2;">';
@@ -831,7 +832,7 @@ class Util
 
                     foreach ($keys as $name)
                     {
-                        $value = & $variable[$name];
+                        $value = &$variable[$name];
                         if (is_integer($name) === true)
                         {
                             self::dumpVal($value, '[' . $name . ']', $tab . $downLine, $reference);
