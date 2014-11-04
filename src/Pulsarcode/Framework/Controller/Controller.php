@@ -4,8 +4,9 @@ namespace Pulsarcode\Framework\Controller;
 
 use Pulsarcode\Framework\Cache\Cache;
 use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Core\Core;
 use Pulsarcode\Framework\Database\Database;
-use Pulsarcode\Framework\Logger\Logger;
+use Pulsarcode\Framework\Log\Log;
 use Pulsarcode\Framework\Mail\Mail;
 use Pulsarcode\Framework\Router\Router;
 use Pulsarcode\Framework\View\View;
@@ -18,7 +19,7 @@ use Symfony\Component\HttpFoundation\Session\Session;
  *
  * @package Pulsarcode\Framework\Controller
  */
-class Controller
+class Controller extends Core
 {
     /**
      * @var Config Configuración de la aplicación
@@ -33,27 +34,12 @@ class Controller
     /**
      * @var Session Sesión actual
      */
-    public $session;
+    protected $session;
 
     /**
      * @var Cookie Cookies actuales
      */
-    public $cookie;
-
-    /**
-     * @var View Para gestionar las vistas
-     */
-    protected $view;
-
-    /**
-     * @var Mail Para gestionar los emails
-     */
-    protected $mail;
-
-    /**
-     * @var Cache Para gestionar la caché
-     */
-    protected $cache;
+    protected $cookie;
 
     /**
      * @var Database Para gestionar la base de datos
@@ -61,24 +47,41 @@ class Controller
     protected $database;
 
     /**
-     * @var Logger Para gestionar los logs
+     * @var Cache Para gestionar la caché
      */
-    protected $logger;
+    protected $cache;
+
+    /**
+     * @var Log Para gestionar los logs
+     */
+    protected $log;
+
+    /**
+     * @var Mail Para gestionar los emails
+     */
+    protected $mail;
+
+    /**
+     * @var View Para gestionar las vistas
+     */
+    protected $view;
 
     /**
      * Constructor
      */
     public function __construct()
     {
+        parent::__construct();
+
         $this->config   = Config::getConfig();
         $this->request  = Router::getRequest();
         $this->session  = Router::getRequest()->getSession();
         $this->cookie   = Router::getRequest()->cookies;
-        $this->view     = new View();
-        $this->mail     = new Mail();
-        $this->cache    = new Cache();
         $this->database = new Database();
-        $this->logger   = new Logger();
+        $this->cache    = new Cache();
+        $this->log      = new Log();
+        $this->mail     = new Mail();
+        $this->view     = new View();
     }
 
     /**

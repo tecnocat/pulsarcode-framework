@@ -2,12 +2,13 @@
 
 namespace Pulsarcode\Framework\Cache;
 
-use Pulsarcode\Framework\Config\Config;
-use Pulsarcode\Framework\Router\Router;
 use Doctrine\Common\Cache as DoctrineCache;
+use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Core\Core;
+use Pulsarcode\Framework\Router\Router;
 
 /**
- * Class Cache Para gestionar la caché.
+ * Class Cache Para gestionar la caché
  *
  * La gestión de la caché ofrece una mejora del rendimiento poniendo una capa por encima de memoria caché sobre las
  * peticiones reales a la base de datos, al disco o fuentes de datos externas.
@@ -36,7 +37,7 @@ use Doctrine\Common\Cache as DoctrineCache;
  *
  * @package Pulsarcode\Framework\Cache
  */
-class Cache
+class Cache extends Core
 {
     /**
      * Cadena de caché para poder cachear nulos y valores false
@@ -95,6 +96,11 @@ class Cache
     private static $allowedEnvironments = array('loc', 'des');
 
     /**
+     * @var bool Control para los capturadores de cacheos
+     */
+    private static $dispatched;
+
+    /**
      * Constructor
      *
      * Inicializa el proveedor de caché seleccionado, si no se pasa ninguno se inicializará el por defecto
@@ -103,6 +109,8 @@ class Cache
      */
     public function __construct($provider = '')
     {
+        parent::__construct();
+
         if (isset(self::$providers) === false)
         {
             self::$providers = Config::getConfig()->cache['providers'];
@@ -116,12 +124,16 @@ class Cache
      */
     public static function setupCacheObjects()
     {
-        register_shutdown_function(
-            function ()
-            {
-                Cache::showObjects();
-            }
-        );
+        if (isset(self::$dispatched) === false)
+        {
+            register_shutdown_function(
+                function ()
+                {
+                    Cache::showObjects();
+                }
+            );
+            self::$dispatched = true;
+        }
     }
 
     /**
@@ -191,7 +203,7 @@ class Cache
 
                             if ($instance->getMemcache()->connect($host, $port) !== false)
                             {
-                                self::$providerInstances[$this->currentProvider] = & $instance;
+                                self::$providerInstances[$this->currentProvider] = &$instance;
                             }
                             else
                             {
@@ -207,7 +219,7 @@ class Cache
 
                             if ($instance->getMemcached()->addServer($host, $port) !== false)
                             {
-                                self::$providerInstances[$this->currentProvider] = & $instance;
+                                self::$providerInstances[$this->currentProvider] = &$instance;
                             }
                             else
                             {
@@ -223,7 +235,7 @@ class Cache
 
                             if ($instance->getRedis()->connect($host, $port) !== false)
                             {
-                                self::$providerInstances[$this->currentProvider] = & $instance;
+                                self::$providerInstances[$this->currentProvider] = &$instance;
                             }
                             else
                             {
@@ -332,19 +344,19 @@ class Cache
                     }
 
                     /** @var DoctrineCache\MemcacheCache $instance */
-                    $instance = & self::$providerInstances[$this->currentProvider];
+                    $instance = &self::$providerInstances[$this->currentProvider];
                     $instance->getMemcache()->set($cacheKey, $cacheValue, $compressed, $cacheExpire);
                     break;
 
                 case 'memcached':
                     /** @var DoctrineCache\MemcachedCache $instance */
-                    $instance = & self::$providerInstances[$this->currentProvider];
+                    $instance = &self::$providerInstances[$this->currentProvider];
                     $instance->getMemcached()->set($cacheKey, $cacheValue, $cacheExpire);
                     break;
 
                 case 'redis':
                     /** @var DoctrineCache\RedisCache $instance */
-                    $instance = & self::$providerInstances[$this->currentProvider];
+                    $instance = &self::$providerInstances[$this->currentProvider];
                     $instance->getRedis()->set($cacheKey, $cacheValue, $cacheExpire);
                     break;
 
@@ -386,19 +398,19 @@ class Cache
 
                 case 'memcache':
                     /** @var DoctrineCache\MemcacheCache $instance */
-                    $instance = & self::$providerInstances[$this->currentProvider];
+                    $instance = &self::$providerInstances[$this->currentProvider];
                     $result   = $instance->getMemcache()->get($prefix . $cacheKey);
                     break;
 
                 case 'memcached':
                     /** @var DoctrineCache\MemcachedCache $instance */
-                    $instance = & self::$providerInstances[$this->currentProvider];
+                    $instance = &self::$providerInstances[$this->currentProvider];
                     $result   = $instance->getMemcached()->get($prefix . $cacheKey);
                     break;
 
                 case 'redis':
                     /** @var DoctrineCache\RedisCache $instance */
-                    $instance = & self::$providerInstances[$this->currentProvider];
+                    $instance = &self::$providerInstances[$this->currentProvider];
                     $result   = $instance->getRedis()->get($prefix . $cacheKey);
                     break;
 
@@ -447,19 +459,19 @@ class Cache
 
                 case 'memcache':
                     /** @var DoctrineCache\MemcacheCache $instance */
-                    $instance = & self::$providerInstances[$this->currentProvider];
+                    $instance = &self::$providerInstances[$this->currentProvider];
                     $instance->getMemcache()->delete($cacheKey);
                     break;
 
                 case 'memcached':
                     /** @var DoctrineCache\MemcachedCache $instance */
-                    $instance = & self::$providerInstances[$this->currentProvider];
+                    $instance = &self::$providerInstances[$this->currentProvider];
                     $instance->getMemcached()->delete($cacheKey);
                     break;
 
                 case 'redis':
                     /** @var DoctrineCache\RedisCache $instance */
-                    $instance = & self::$providerInstances[$this->currentProvider];
+                    $instance = &self::$providerInstances[$this->currentProvider];
                     $instance->getRedis()->delete($cacheKey);
                     break;
 

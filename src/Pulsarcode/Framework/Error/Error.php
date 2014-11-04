@@ -3,6 +3,7 @@
 namespace Pulsarcode\Framework\Error;
 
 use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Core\Core;
 use Pulsarcode\Framework\Mail\Mail;
 use Pulsarcode\Framework\Router\Router;
 
@@ -11,7 +12,7 @@ use Pulsarcode\Framework\Router\Router;
  *
  * @package Pulsarcode\Framework\Error
  */
-class Error
+class Error extends Core
 {
     /**
      * Archivo de log para errores

@@ -3,13 +3,14 @@
 namespace Pulsarcode\Framework\Mail;
 
 use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Core\Core;
 
 /**
- * Class Mail Para gestionar los mails
+ * Class Mail Para gestionar los emails
  *
  * @package Pulsarcode\Framework\Mail
  */
-class Mail
+class Mail extends Core
 {
     /**
      * User Agent para fakear los mails
@@ -36,6 +37,8 @@ class Mail
      */
     public function __construct()
     {
+        parent::__construct();
+
         $this->mailer = new \PHPMailer();
     }
 

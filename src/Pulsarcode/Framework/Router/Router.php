@@ -5,6 +5,7 @@ namespace Pulsarcode\Framework\Router;
 use Pulsarcode\Framework\Cache\Cache;
 use Pulsarcode\Framework\Config\Config;
 use Pulsarcode\Framework\Controller\Controller;
+use Pulsarcode\Framework\Core\Core;
 use Pulsarcode\Framework\Error\Error;
 use Pulsarcode\Framework\Util\Util;
 use Pulsarcode\Framework\View\View;
@@ -25,7 +26,7 @@ use Symfony\Component\Yaml\Yaml;
  *
  * @package Pulsarcode\Framework\Router
  */
-class Router
+class Router extends Core
 {
     /**
      * Archivo de rutas
@@ -47,7 +48,7 @@ class Router
     /**
      * Patrón para insertar un contenido CSS
      */
-    const STATIC_CSS_INSERT_PATTERN = '<style type="text/css" %s>%s</style>';
+    const STATIC_CSS_INSERT_PATTERN = '<style type="text/css"%s>%s</style>';
 
     /**
      * Patrón para importar un recurso JS
@@ -123,14 +124,12 @@ class Router
     /**
      * Constructor
      */
-    private function __construct()
+    public function __construct()
     {
+        parent::__construct();
+
         if (isset(self::$request) === false)
         {
-            /**
-             * En la primera petición del request activamos los capturadores de errores
-             */
-            Error::setupErrorHandler();
             self::$request = Request::createFromGlobals();
             self::$request->setSession(new Session());
         }

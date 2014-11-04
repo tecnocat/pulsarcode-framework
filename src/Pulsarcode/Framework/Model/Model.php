@@ -3,6 +3,7 @@
 namespace Pulsarcode\Framework\Model;
 
 use Pulsarcode\Framework\Cache\Cache;
+use Pulsarcode\Framework\Core\Core;
 use Pulsarcode\Framework\Database\MSSQLWrapper;
 
 /**
@@ -10,7 +11,7 @@ use Pulsarcode\Framework\Database\MSSQLWrapper;
  *
  * @package Pulsarcode\Framework\Model
  */
-class Model
+class Model extends Core
 {
     /**
      * @var Cache Para gestionar la caché
@@ -36,6 +37,8 @@ class Model
      */
     public function __construct(MSSQLWrapper $database)
     {
+        parent::__construct();
+
         $this->cache    = new Cache();
         $this->model    = get_class($this);
         $this->database = $database;
