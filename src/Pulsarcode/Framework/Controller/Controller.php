@@ -42,14 +42,14 @@ class Controller extends Core
     protected $cookie;
 
     /**
-     * @var Database Para gestionar la base de datos
-     */
-    protected $database;
-
-    /**
      * @var Cache Para gestionar la caché
      */
     protected $cache;
+
+    /**
+     * @var Database Para gestionar la base de datos
+     */
+    protected $database;
 
     /**
      * @var Log Para gestionar los logs
@@ -77,8 +77,8 @@ class Controller extends Core
         $this->request  = Router::getRequest();
         $this->session  = Router::getRequest()->getSession();
         $this->cookie   = Router::getRequest()->cookies;
-        $this->database = new Database();
         $this->cache    = new Cache();
+        $this->database = new Database();
         $this->log      = new Log();
         $this->mail     = new Mail();
         $this->view     = new View();
