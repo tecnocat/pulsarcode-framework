@@ -4,7 +4,7 @@ namespace Pulsarcode\Framework\Model;
 
 use Pulsarcode\Framework\Cache\Cache;
 use Pulsarcode\Framework\Core\Core;
-use Pulsarcode\Framework\Database\MSSQLWrapper;
+use Pulsarcode\Framework\Database\Database;
 
 /**
  * Class Model Para gestionar los modelos
@@ -19,29 +19,22 @@ class Model extends Core
     protected $cache;
 
     /**
-     * @var string Nombre del modelo en uso
-     */
-    protected $model;
-
-    /**
-     * @var MSSQLWrapper Para gestionar la base de datos
+     * @var Database Para gestionar la base de datos
      */
     protected $database;
 
     /**
      * Constructor
-     *
-     * TODO: Refactorizar el wrapper de Database para no instanciar la porquería MSSQLWrapper
-     *
-     * @param MSSQLWrapper $database Base de datos para realizar las operaciones
      */
-    public function __construct(MSSQLWrapper $database)
+    public function __construct()
     {
         parent::__construct();
 
+        /**
+         * TODO: El controlador ya tiene una instancia de Database y Cache, darle una vuelta a esto
+         */
         $this->cache    = new Cache();
-        $this->model    = get_class($this);
-        $this->database = $database;
+        $this->database = new Database();
     }
 
     /**
@@ -93,7 +86,7 @@ class Model extends Core
     {
         if (isset($this->$field) === false)
         {
-            $errorMessage = sprintf('Imposible borrar el campo "%s" del modelo "%s"', $field, $this->model);
+            $errorMessage = sprintf('Imposible borrar el campo "%s" del modelo "%s"', $field, get_class($this));
             trigger_error($errorMessage, E_USER_ERROR);
         }
 
@@ -128,30 +121,31 @@ class Model extends Core
     private function _map(&$field)
     {
         $classVars = get_class_vars(__CLASS__);
-        $modelVars = get_class_vars($this->model);
+        $modelName = get_class($this);
+        $modelVars = get_class_vars($modelName);
 
         if (array_key_exists($field, $classVars) === true)
         {
-            $errorMessage = sprintf('"%s" es un campo reservado, llamada desde el modelo "%s"', $field, $this->model);
+            $errorMessage = sprintf('"%s" es un campo reservado, llamada desde el modelo "%s"', $field, $modelName);
             trigger_error($errorMessage, E_USER_ERROR);
         }
         elseif (isset($this->_map) !== false)
         {
             if (isset($this->_map[$field]) === false)
             {
-                $errorMessage = sprintf('Falta el mapeo de campo para "%s" en el modelo "%s"', $field, $this->model);
+                $errorMessage = sprintf('Falta el mapeo de campo para "%s" en el modelo "%s"', $field, $modelName);
                 trigger_error($errorMessage, E_USER_ERROR);
             }
 
             $map          = $this->_map[$field];
-            $errorMessage = sprintf('Mapeo de campo "%s -> %s" en el modelo "%s"', $field, $map, $this->model);
+            $errorMessage = sprintf('Mapeo de campo "%s -> %s" en el modelo "%s"', $field, $map, $modelName);
             trigger_error($errorMessage, E_USER_NOTICE);
             $fields = array_diff_assoc($modelVars, $classVars);
             $field  = $map;
 
             if (array_key_exists($field, $fields) === false)
             {
-                $errorMessage = sprintf('El campo mapeado "%s" no existe en el modelo "%s"', $field, $this->model);
+                $errorMessage = sprintf('El campo mapeado "%s" no existe en el modelo "%s"', $field, $modelName);
                 trigger_error($errorMessage, E_USER_ERROR);
             }
 
@@ -159,7 +153,7 @@ class Model extends Core
             {
                 if (array_search($fieldName, $this->_map) === false && $fieldName !== '_map')
                 {
-                    $errorMessage = sprintf('El campo "%s" no tiene mapeo en el modelo "%s"', $fieldName, $this->model);
+                    $errorMessage = sprintf('El campo "%s" no tiene mapeo en el modelo "%s"', $fieldName, $modelName);
                     trigger_error($errorMessage, E_USER_ERROR);
                 }
             }
