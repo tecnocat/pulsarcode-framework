@@ -102,13 +102,14 @@ class Config extends Core
             /**
              * Cargamos el Yaml parser para cargar los archivos
              */
-            $yaml              = new Yaml();
-            $parametersContent = array();
+            $yaml = new Yaml();
 
             /**
              * TODO: Usar un método mejor para saber dónde está el directorio raíz
+             * TODO: Eliminar compatibilidad con enlaces simbólicos en capistrano
              */
             $rootPath   = dirname(dirname(dirname(dirname(dirname(dirname(dirname(__DIR__)))))));
+            $rootPath   = str_replace('/shared', '/current', $rootPath);
             $appPath    = $rootPath . DIRECTORY_SEPARATOR . 'app';
             $cachePath  = $appPath . DIRECTORY_SEPARATOR . 'cache';
             $configPath = $appPath . DIRECTORY_SEPARATOR . 'config';
