@@ -39,7 +39,7 @@ class Deploy extends Core
         {
             if (isset(Config::getConfig()->deploy['roles'][$role]) !== false)
             {
-                $servers = explode(' ', Config::getConfig()->deploy['roles'][$role]['host']);
+                $servers = explode('|', Config::getConfig()->deploy['roles'][$role]['host']);
 
                 foreach ($servers as $server)
                 {
