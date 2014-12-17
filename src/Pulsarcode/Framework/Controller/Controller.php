@@ -42,14 +42,14 @@ class Controller extends Core
     protected $cookie;
 
     /**
-     * @var Database Para gestionar la base de datos
-     */
-    protected $database;
-
-    /**
      * @var Cache Para gestionar la caché
      */
     protected $cache;
+
+    /**
+     * @var Database Para gestionar la base de datos
+     */
+    protected $database;
 
     /**
      * @var Log Para gestionar los logs
@@ -77,8 +77,8 @@ class Controller extends Core
         $this->request  = Router::getRequest();
         $this->session  = Router::getRequest()->getSession();
         $this->cookie   = Router::getRequest()->cookies;
-        $this->database = new Database();
         $this->cache    = new Cache();
+        $this->database = new Database();
         $this->log      = new Log();
         $this->mail     = new Mail();
         $this->view     = new View();
@@ -93,27 +93,21 @@ class Controller extends Core
     {
         list($controller, $action) = explode('::', $match['controller']);
 
-        /**
-         * Seteamos el Controller, el Method y eliminamos los parámetros internos del Router
-         */
-        $this->view->setController($controller . 'Controller');
-        $this->view->setAction($action . 'Action');
-        $this->view->setArgs(array_diff_key($match, Router::$internalValues));
-
-        /**
-         * Si hay template la seteamos, y si no asumimos JSON
-         *
-         * TODO: Usar el componente de Symfony para detectar el formato según la petición
-         */
-        if (isset($match['template']))
+        if (isset($match['template']) !== false)
         {
-            $this->view->setTemplate($match['template']);
+            $template = $match['template'];
         }
         else
         {
-            $this->view->setFormat('json');
+            $template = sprintf('%s-layout.%s.twig', $action, $this->request->getRequestFormat());
         }
 
+        $this->view->setController($controller . 'Controller');
+        $this->view->setAction($action . 'Action');
+        $this->view->setArgs(array_diff_key($match, Router::$internalValues));
+        $this->view->setFormat($this->request->getRequestFormat());
+        $this->view->setTemplate($template);
+        $this->view->setupForms();
         $this->callMethod($this->view->getAction(), $this->view->getArgs());
         $this->view->display();
     }

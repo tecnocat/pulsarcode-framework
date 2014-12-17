@@ -217,6 +217,11 @@ class Router extends Core
 
             self::$routerParams = self::match(self::$request->getPathInfo());
 
+            if (isset(self::$routerParams['_format']) !== false)
+            {
+                self::$request->setRequestFormat(self::$routerParams['_format']);
+            }
+
             /**
              * TODO: Usar el componente de seguridad en vez de esta basura
              */

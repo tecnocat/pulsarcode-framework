@@ -5,7 +5,20 @@ namespace Pulsarcode\Framework\View;
 use Pulsarcode\Framework\Config\Config;
 use Pulsarcode\Framework\Core\Core;
 use Pulsarcode\Framework\Error\Error;
+use Pulsarcode\Framework\Router\Router;
+use Symfony\Bridge\Twig\Extension\FormExtension;
+use Symfony\Bridge\Twig\Form\TwigRenderer;
+use Symfony\Bridge\Twig\Form\TwigRendererEngine;
+use Symfony\Component\Form\Extension\Csrf\CsrfExtension;
+use Symfony\Component\Form\Extension\Csrf\CsrfProvider\SessionCsrfProvider;
+use Symfony\Component\Form\Extension\HttpFoundation\HttpFoundationExtension;
+use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
+use Symfony\Component\Form\Form;
+use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\Form\Forms;
+use Symfony\Component\Validator\Validation;
 use Twig_Environment;
+use Twig_Extension_Debug;
 use Twig_Loader_Filesystem;
 
 /**
@@ -41,9 +54,19 @@ class View extends Core
     private $twig;
 
     /**
+     * @var FormFactoryInterface Constructor de formularios
+     */
+    private $formFactory;
+
+    /**
+     * @var Form Formulario para renderizar
+     */
+    private $form;
+
+    /**
      * @var null Vista para pintar
      */
-    private $template = null;
+    private $template;
 
     /**
      * @var array Variables de la vista
@@ -124,6 +147,31 @@ class View extends Core
         }
 
         unset($this->variables[$variable]);
+    }
+
+    /**
+     * Inicializa los elementos para formularios
+     */
+    public function setupForms()
+    {
+        $csrfSecret   = md5(Config::getConfig()->application['token'] . time());
+        $csrfProvider = new SessionCsrfProvider(Router::getRequest()->getSession(), $csrfSecret);
+        $formEngine   = new TwigRendererEngine(array($this->getFormLayout()));
+        $formEngine->setEnvironment($this->twig);
+        $this->twig->addExtension(new FormExtension(new TwigRenderer($formEngine, $csrfProvider)));
+
+        if ($this->twig->isDebug())
+        {
+            $this->twig->addExtension(new Twig_Extension_Debug());
+        }
+
+        $formFactory = Forms::createFormFactoryBuilder()
+            ->addExtension(new HttpFoundationExtension())
+            ->addExtension(new CsrfExtension($csrfProvider))
+            ->addExtension(new ValidatorExtension(Validation::createValidator()))
+            ->getFormFactory();
+
+        $this->setFormFactory($formFactory);
     }
 
     /**
@@ -236,6 +284,56 @@ class View extends Core
     }
 
     /**
+     * Devuelve las variables para la template
+     *
+     * @return array $variables
+     */
+    public function getVariables()
+    {
+        return $this->variables;
+    }
+
+    /**
+     * Establece el constructor de formularios
+     *
+     * @param FormFactoryInterface $formFactory
+     */
+    public function setFormFactory(FormFactoryInterface $formFactory)
+    {
+        $this->formFactory = $formFactory;
+    }
+
+    /**
+     * Devuelve el constructor de formularios
+     *
+     * @return FormFactoryInterface
+     */
+    public function getFormFactory()
+    {
+        return $this->formFactory;
+    }
+
+    /**
+     * Establece el formulario para renderizar
+     *
+     * @param Form $form
+     */
+    public function setForm(Form $form)
+    {
+        $this->form = $form;
+    }
+
+    /**
+     * Devuelve el formulario para renderizar
+     *
+     * @return Form
+     */
+    public function getForm()
+    {
+        return $this->form;
+    }
+
+    /**
      * Obtiene una template
      *
      * @return string
@@ -269,7 +367,15 @@ class View extends Core
                 return ob_get_clean();
 
             case 'twig':
-                return $this->twig->render($this->template, $this->variables);
+                return $this->twig->render(
+                    $this->template,
+                    array_merge(
+                        $this->variables,
+                        array(
+                            'form_' . $this->getForm()->getName() => $this->getForm()->createView(),
+                        )
+                    )
+                );
 
             default:
                 trigger_error('Motor no soportado (' . $engine . ' -> ' . $this->template . ')', E_USER_ERROR);
@@ -377,5 +483,20 @@ class View extends Core
             );
             Error::setError('500', $errorData);
         }
+    }
+
+    /**
+     * Devuelve la template para el formulario actual
+     *
+     * @return string
+     */
+    private function getFormLayout()
+    {
+        return sprintf(
+            '%s/%s-layout-form.%s.twig',
+            substr($this->controller, 0, -10),
+            substr($this->action, 0, -6),
+            $this->format
+        );
     }
 }

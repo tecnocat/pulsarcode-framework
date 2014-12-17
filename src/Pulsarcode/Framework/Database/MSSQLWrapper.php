@@ -2,111 +2,184 @@
 
 namespace Pulsarcode\Framework\Database;
 
-/*
- * Actualizado para MS SQL
- */
+use Pulsarcode\Framework\Config\Config;
+use Pulsarcode\Framework\Core\Core;
+use Pulsarcode\Framework\Router\Router;
 
 /**
-* Conector a la base de datos
-*/
-class MSSQLWrapper {
-    /** @var string query sql*/
-    var $_sql            = '';
-    /** @var int codigo de error de la BD */
-    var $_errorNum        = 0;
-    /** @var string Internal mensaje de error */
-    var $_errorMsg        = '';
-    /** @var Internal variable conector a base de datos */
-    var $_resource        = '';
-    /** @var Internal variable ultimo cursor utilizado */
-    var $_cursor        = null;
-    /** @var boolean Debug */
-    var $_debug            = false;
-    /** @var fichero de log */
-    var $_filelog    = null;
-    /** @var int desplazamiento hasta el limite */
-    var $_offset        = 0;
-    /** @var int contador de querys de la instancia */
-    var $_ticker        = 0;
-    /** @var array log de querys */
-    var $_log            = null;
-    /** @var string fecha/hora nulo */
-    var $_nullDate        = '0000-00-00 00:00:00';
-    /** @var string acotamiento de nombre de columnas */
-    var $_nameQuote        = '';
-    /** @var Internal variable ultimo cursor utilizado */
-    var $_cur        = null;
-    /** @var Internal variable comienzo a contar el tiempo */
-    var $_timestart        = null;
-    /** @var Internal variable tiempo acumulado desde la conexion */
-    var $_timeaccum        = 0.0;
+ * Class MSSQLWrapper Para gestionar la base de datos SQL Server
+ *
+ * @package Pulsarcode\Framework\Database
+ */
+class MSSQLWrapper extends Core
+{
+    /**
+     * @var string Query SQL para ejecutar en la base de datos
+     */
+    private $sql = '';
 
-    var $_camposTipoFecha = array();
+    /**
+     * @var int Codigo del ultimo error de la base de datos
+     */
+    public $lastErrorCode = 0;
+
+    /**
+     * @var string Mensaje del ultimo error de la base de datos
+     */
+    public $lastErrorMessage = '';
+
+    /**
+     * @var resource Instancia de la conexión con la base de datos
+     */
+    public $link;
+
+    /**
+     * @var null Internal variable ultimo cursor utilizado
+     */
+    public $cursor;
+
+    /**
+     * @var boolean Debug mode
+     */
+    public $debug = false;
+
+    /**
+     * @var int desplazamiento hasta el limite
+     */
+    public $offset = 0;
+
+    /**
+     * @var string acotamiento de nombre de columnas
+     */
+    public $_nameQuote = '';
+
+    /**
+     * @var null Internal variable ultimo cursor utilizado
+     *
+     * TODO: Eliminar esta copia por que da lugar a bug en consultas consecutivas
+     */
+    public $cursorCopia = null;
+
+    /**
+     * @var float Internal variable comienzo a contar el tiempo
+     */
+    private $timeStart = 0.0;
+
+    /**
+     * @var float Internal variable tiempo acumulado desde la conexion
+     */
+    private $timeTotal = 0.0;
+
+    /**
+     * @var array Campos tipo fecha
+     *
+     * TODO Eliminar esta guarrería
+     */
+    public $_camposTipoFecha = array(
+        'fecha%',
+        'campo',
+        'fin_autocasion',
+        'sello',
+        'test_date',
+        'ultima_actualizacion',
+        'ultima_aparicion',
+        'ultimo_aviso',
+    );
 
     /**
      * Constructor
      *
      * @param string $host
-     * @param        $user
-     * @param        $pass
-     * @param string $db
-     * @param bool   $persistente
+     * @param string $user
+     * @param string $pass
+     * @param string $dbname
+     * @param bool   $persistent
      */
-    public function __construct($host, $user, $pass, $db = '', $persistente = true)
+    public function __construct($host, $user, $pass, $dbname, $persistent = true)
     {
-        /*
-         * verificamos que las funciones para MS SQL est�n disponibles
+        parent::__construct();
+
+        $this->queryTimeStart();
+
+        /**
+         * TODO: Implementar en Util la validacion multiple de nulos y tipos (TR) para evitar este código repetido
          */
-        global $_SERVER;
-        global $DEBUG;
-
-        $this->_camposTipoFecha = array('fecha%','campo','fin_autocasion','sello','test_date','ultima_actualizacion','ultima_aparicion','ultimo_aviso');
-
-        $ip = 'localhost';
-        if(isset($_SERVER['REMOTE_ADDR']))
+        if (isset($host) === false)
         {
-        $ip = $_SERVER['REMOTE_ADDR'];
+            trigger_error('No se ha especificado el host para la conexion con la base de datos', E_USER_ERROR);
+        }
+        elseif (isset($user) === false)
+        {
+            trigger_error('No se ha especificado el usuario para la conexion con la base de datos', E_USER_ERROR);
+        }
+        elseif (isset($pass) === false)
+        {
+            trigger_error('No se ha especificado el password para la conexion con la base de datos', E_USER_ERROR);
+        }
+        elseif (isset($dbname) === false)
+        {
+            trigger_error('No se ha especificado la base de datos para la conexion con la base de datos', E_USER_ERROR);
         }
 
-        $ruta = __DIR__;
-        $this->time_start();
-
-                if (!$persistente) {
-
-          if (!function_exists( 'mssql_connect' )) {
-            $SystemError = 1;
-          } else {
-            if (!($this->_resource = mssql_connect( $host, $user, $pass ))) {
-                $SystemError = 2;
+        if ($persistent === false)
+        {
+            if (function_exists('mssql_connect') === false)
+            {
+                trigger_error(
+                    'No existe la función mssql_connect, no hay módulo Sybase/PDOLib/ODBC disponible',
+                    E_USER_ERROR
+                );
             }
-                if ($db != '' && !mssql_select_db( $db, $this->_resource )) {
-              $SystemError = 3;
-                }
-          }
-                } else {
-                  if (!function_exists( 'mssql_pconnect' )) {
-                        $SystemError = 1;
-                  } else {
-                        $per = 1;
-                        if (!($this->_resource = mssql_pconnect( $host, $user, $pass ))) {
-                                $SystemError = 2;
-                        }
-                        if ($db != '' && !mssql_select_db( $db, $this->_resource )) {
-                          $SystemError = 3;
-                        }
-                  }
-                }
-        $this->_debug=$DEBUG;
-        $this->_ticker = 0;
-        $this->_log = array();
+            else
+            {
+                $this->link = mssql_connect($host, $user, $pass);
 
-        if(!isset($msg)) {
-            $msg = '';
+                if ($this->link === false)
+                {
+                    trigger_error('Imposible conectar con la base de datos en modo no persistente', E_USER_ERROR);
+                }
+            }
+        }
+        else
+        {
+            if (function_exists('mssql_pconnect') === false)
+            {
+                trigger_error(
+                    'No existe la función pmssql_connect, no hay módulo Sybase/PDOLib/ODBC disponible',
+                    E_USER_ERROR
+                );
+            }
+            else
+            {
+                $this->link = mssql_pconnect($host, $user, $pass);
+
+                if ($this->link === false)
+                {
+                    trigger_error('Imposible conectar con la base de datos en modo persistente', E_USER_ERROR);
+                }
+            }
         }
 
-        $this->_filelog = "$ruta/log/$ip.log";
-        if(isset($SystemError)) $msg = " ($SystemError $user/$pass/$db)";
-        if ($this->_debug) $this->logear($this->time_end()." [$per] CONEXI�N $db $msg");
+        if ($this->selectDatabase($dbname) === false)
+        {
+            trigger_error('Imposible seleccionar la base de datos "' . $dbname . '"', E_USER_ERROR);
+        }
+
+        $this->debug = (in_array(Config::getConfig()->environment, array('loc', 'des')));
+
+        if ($this->debug)
+        {
+            $connectionType = ($persistent) ? 'Persistent' : 'Dynamic';
+            $this->log(
+                sprintf(
+                    '%s connection to database host=%s;dbname=%s;user=%s;password=******** (filtered)',
+                    $connectionType,
+                    $host,
+                    $dbname,
+                    $user
+                )
+            );
+        }
     }
 
     /**
@@ -134,6 +207,37 @@ class MSSQLWrapper {
     }
 
     /**
+     * Establece la query SQL para una proxima ejecucion
+     *
+     * @param string $sql    La query SQL
+     * @param string $offset Comienzo de la fila que devolvera
+     */
+    public function setQuery($sql, $offset = 0)
+    {
+        $this->sql     = $sql;
+        $this->offset = intval($offset);
+    }
+
+    /**
+     * Devuelve la query actual para visualizar en consola o HTML
+     *
+     * @return string Query SQL
+     */
+    public function getQuery() {
+
+        if (php_sapi_name() !== 'cli')
+        {
+            $result = '<pre>' . $this->sql . '</pre>';
+        }
+        else
+        {
+            $result = PHP_EOL . $this->sql . PHP_EOL;
+        }
+
+        return $result;
+    }
+
+    /**
      * Setea y ejecuta una query
      *
      * @param string $query
@@ -147,54 +251,180 @@ class MSSQLWrapper {
         return $this->query();
     }
 
-    public function logear($texto) {
-        $charlist = " \t\n\r\0\x0B";
-
-                $txt = str_replace(str_split($charlist), ' ', $texto);
-                $txt = str_replace(str_split($charlist), ' ', $txt);
-        file_put_contents($this->_filelog, date("Y-m-d H:i:s")." >>$txt\r\n", FILE_APPEND);
-    }
-
-    public function time_start() {
-             $mtime = microtime();
-             $mtime = explode(" ",$mtime);
-             $mtime = $mtime[1] + $mtime[0];
-             $this->_timestart = $mtime;
-        }
-
-        function time_end() {
-             $mtime = microtime();
-             $mtime = explode(" ",$mtime);
-         $mtime = $mtime[1] + $mtime[0];
-         $this->_timeaccum += ($mtime - $this->_timestart);
-             return "(".number_format($mtime - $this->_timestart, 6).")(".number_format($this->_timeaccum, 6).")";
-        }
-
-    public function selectDatabase($db) {
-        if ($db != '' && !mssql_select_db( $db, $this->_resource )) {
-            $mosSystemError = 3;
-        }
-        $this->_ticker = 0;
-        $this->_log = array();
-    }
     /**
-     * @param int
+     * Ejecuta la query y devuelve el recurso en caso de éxito o false si no
+     *
+     * @return bool|mixed|null
      */
-    public function debug( $level ) {
-        $this->_debug = intval( $level );
+    public function query()
+    {
+        $this->lastErrorCode    = 0;
+        $this->lastErrorMessage = '';
+        $this->cursor           = mssql_query($this->sql, $this->link);
+
+        if ($this->cursor === false)
+        {
+            $this->lastErrorMessage = mssql_get_last_message();
+            trigger_error('Imposible ejecutar la query debido a un error: ' . $this->lastErrorMessage, E_USER_ERROR);
+        }
+
+        if ($this->debug)
+        {
+            $this->log($this->sql);
+        }
+
+        return ($this->cursor !== false) ? $this->cursor : false;
     }
+
     /**
-     * @return string codigo del ultimo error de la bd
+     * @return int Numero de filas de la ejecucion anterior
      */
-    public function getErrorNum() {
-        return $this->_errorNum;
+    public function getAffectedRows()
+    {
+        return mssql_rows_affected($this->link);
     }
+
     /**
-    * @return string La cadena explicativa del error
-    */
-    public function getErrorMsg() {
-        return str_replace( array( "\n", "'" ), array( '\n', "\'" ), $this->_errorMsg );
+     * Función para registrar eventos de la base de datos
+     *
+     * @param string $message Texto a registrar
+     */
+    private function log($message)
+    {
+        $message = sprintf(
+            '[%s] %s %s',
+            date('Y-m-d H:i:s'),
+            $this->queryTimeGet(),
+            preg_replace('/\s+/', ' ', $message)
+        );
+
+        if (Router::getRequest()->server->has('REMOTE_ADDR'))
+        {
+            $host = Router::getRequest()->server->get('REMOTE_ADDR');
+        }
+        else
+        {
+            $host = 'localhost';
+        }
+
+        $file = sprintf('%s/database-%s-%s.log', Config::getConfig()->paths['logs'], date('Y-m-d'), $host);
+
+        /**
+         * Guardamos el log en background para no penalizar rendimiento
+         */
+        register_shutdown_function(
+            function () use ($file, $message)
+            {
+                file_put_contents($file, $message . PHP_EOL, FILE_APPEND);
+            }
+        );
     }
+
+    /**
+     * Inicializa un contador para mediciones de tiempos
+     */
+    private function queryTimeStart()
+    {
+        list($usec, $sec) = explode(' ', microtime());
+        $microtime        = (float) $usec + (float) $sec;
+        $this->timeStart  = $microtime;
+    }
+
+    /**
+     * Devuelve la marca de tiempo actual respecto al tiempo de inicio
+     *
+     * @return string Marca de tiempo en milisegundos
+     */
+    private function queryTimeGet()
+    {
+        list($usec, $sec) = explode(' ', microtime());
+        $microtime        = (float) $usec + (float) $sec;
+        $this->timeTotal += ($microtime - $this->timeStart);
+
+        return sprintf('(Time: %.4fms Total: %.4fms)', $microtime - $this->timeStart, $this->timeTotal);
+    }
+
+    /**
+     * Selecciona la base de datos para el recurso existente si existe
+     *
+     * @param string $dbname Nombre de la base de datos
+     *
+     * @return bool Devuelve true en caso de éxito, false si hay error
+     */
+    public function selectDatabase($dbname)
+    {
+        if (isset($this->link) !== false)
+        {
+            return mssql_select_db($dbname, $this->link);
+        }
+        else
+        {
+            trigger_error('Imposible seleccionar la base de datos');
+        }
+    }
+
+    /**
+     * Devuelve el último código de error de la base de datos
+     *
+     * @return int Código de error
+     */
+    public function getLastErrorCode()
+    {
+        return $this->lastErrorCode;
+    }
+
+    /**
+     * @return string La cadena explicativa del error
+     */
+    public function getLastErrorMessage()
+    {
+        return preg_replace('/\s+/', ' ', $this->lastErrorMessage);
+    }
+
+    /**
+     * Libera el último cursor utilizado y el recurso de la query
+     */
+    public function release()
+    {
+        if (isset($this->cursorCopia) !== false)
+        {
+            mssql_free_result($this->cursorCopia);
+        }
+
+        $this->cursorCopia = null;
+    }
+
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+    /*******************************************************************************************************************
+     * A partir de aqui las funciones existentes son las viejas que había sin refacorizar de la clase anterior Joomla! *
+     ******************************************************************************************************************/
+
     /**
     * Get a database escaped string
     * @return string
@@ -233,66 +463,6 @@ class MSSQLWrapper {
     }
 
     /**
-     * @return string El fecha/hora nulo
-     */
-    public function getNullDate() {
-        return $this->_nullDate;
-    }
-    /**
-    * Establece el query para una proxima ejecucion
-    *
-    * @param string La query
-    * @param string Comienzo de la fila que devolvera
-    */
-    public function setQuery( $sql, $offset = 0) {
-        $this->_sql = $sql;
-        $this->_offset = intval( $offset );
-    }
-
-    /**
-    * @return string Devuelve la query actual, formateada para sacar en web
-    */
-    public function getQuery() {
-        return "<pre>" . htmlspecialchars( $this->_sql ) . "</pre>";
-    }
-    /**
-    * Ejecuta la query
-    * @return mixed El cursor o FALSE si falla
-    */
-    public function query() {
-        /*if ($this->_debug) {
-            $this->_ticker++;
-              $this->_log[] = $this->_sql;
-        }
-         */
-        $this->_errorNum = 0;
-        $this->_errorMsg = '';
-        $this->time_start();
-        $this->_cursor = mssql_query( $this->_sql, $this->_resource );
-        if (!$this->_cursor) {
-            $SystemError = 5;
-            //echo "**".$this->_sql."<br>";
-            return false;
-        }
-        if ($this->_debug) $this->logear($this->time_end()." ".$this->_sql);
-        return $this->_cursor;
-    }
-
-    /**
-     * @return int Numero de filas de la ejecucion anterior
-     */
-    public function getAffectedRows() {
-        return mssql_rows_affected( $this->_resource );
-    }
-
-    /**
-    * @return int Numero de filas devueltas del anterior query
-    */
-    public function getNumRows( $cur=null ) {
-        return mssql_num_rows( $cur ? $cur : $this->_cursor );
-    }
-
-    /**
     * Retorna el valor del primer campo de la primera fila de la query
     *
     * @return bool|null retorna null si la query falla
@@ -303,7 +473,7 @@ class MSSQLWrapper {
         }
         $ret = null;
 
-        $cacheKey  = md5($this->_sql);
+        $cacheKey  = md5($this->sql);
         $cacheData = $this->getCache($cacheKey);
 
         if ($cacheData)
@@ -320,7 +490,7 @@ class MSSQLWrapper {
             $this->setCache($cacheKey, $ret);
         }
 
-        $this->_offset = 0;
+        $this->offset = 0;
         return $ret;
     }
     /**
@@ -333,7 +503,7 @@ class MSSQLWrapper {
             return null;
         }
 
-        $cacheKey  = md5($this->_sql);
+        $cacheKey  = md5($this->sql);
         $cacheData = $this->getCache($cacheKey);
 
         if ($cacheData)
@@ -342,7 +512,7 @@ class MSSQLWrapper {
         }
         else
         {
-        if ($this->_offset>1) mssql_field_seek($cur, $this->_offset-1);
+        if ($this->offset>1) mssql_field_seek($cur, $this->offset-1);
         $array = array();
         while ($row = mssql_fetch_row( $cur )) {
             $array[] = $row[$numinarray];
@@ -351,7 +521,7 @@ class MSSQLWrapper {
             $this->setCache($cacheKey, $array);
         }
 
-        $this->_offset = 0;
+        $this->offset = 0;
         return $array;
     }
     /**
@@ -364,7 +534,7 @@ class MSSQLWrapper {
             return null;
         }
 
-        $cacheKey  = md5($this->_sql);
+        $cacheKey  = md5($this->sql);
         $cacheData = $this->getCache($cacheKey);
 
         if ($cacheData)
@@ -373,7 +543,7 @@ class MSSQLWrapper {
         }
         else
         {
-        if ($this->_offset>1) mssql_field_seek($cur, $this->_offset-1);
+        if ($this->offset>1) mssql_field_seek($cur, $this->offset-1);
         $array = array();
         while ($row = mssql_fetch_assoc( $cur )) {
             if ($key) {
@@ -386,7 +556,7 @@ class MSSQLWrapper {
             $this->setCache($cacheKey, $array);
         }
 
-        $this->_offset = 0;
+        $this->offset = 0;
         return $array;
     }
     /**
@@ -395,13 +565,13 @@ class MSSQLWrapper {
     * @return array Si <var>key</var> no se suministra es una lista secuencial de resultados
     */
     public function loadAssoc() {
-        if (!$this->_cur) {
-          if (!($this->_cur = $this->query())) {
+        if (!$this->cursorCopia) {
+          if (!($this->cursorCopia = $this->query())) {
             return null;
           }
         }
 
-        $cacheKey  = md5($this->_sql);
+        $cacheKey  = md5($this->sql);
         $cacheData = $this->getCache($cacheKey);
 
         if ($cacheData)
@@ -410,11 +580,11 @@ class MSSQLWrapper {
         }
         else
         {
-        if ($this->_offset>1) mssql_field_seek($this->_cur, $this->_offset-1);
+        if ($this->offset>1) mssql_field_seek($this->cursorCopia, $this->offset-1);
         $array = array();
-        $row = mssql_fetch_assoc( $this->_cur );
+        $row = mssql_fetch_assoc( $this->cursorCopia );
         //mssql_free_result( $cur );
-        $this->_offset = 0;
+        $this->offset = 0;
         if ($row == null) $this->release();
             $this->setCache($cacheKey, $row);
         }
@@ -431,7 +601,7 @@ class MSSQLWrapper {
             return null;
         }
 
-        $cacheKey  = md5($this->_sql);
+        $cacheKey  = md5($this->sql);
         $cacheData = $this->getCache($cacheKey);
 
         if ($cacheData)
@@ -440,7 +610,7 @@ class MSSQLWrapper {
         }
         else
         {
-        if ($this->_offset>1) mssql_field_seek($cur, $this->_offset-1);
+        if ($this->offset>1) mssql_field_seek($cur, $this->offset-1);
         $array = array();
         while ($row = mssql_fetch_row( $cur )) {
             $array[$row[0]] = $row[1];
@@ -449,7 +619,7 @@ class MSSQLWrapper {
             $this->setCache($cacheKey, $array);
         }
 
-        $this->_offset = 0;
+        $this->offset = 0;
         return $array;
 
     }
@@ -463,9 +633,9 @@ class MSSQLWrapper {
     * @param object The address of variable
     */
     public function loadObject( &$object ) {
-        $this->_offset = 0;
+        $this->offset = 0;
 
-        $cacheKey  = md5($this->_sql);
+        $cacheKey  = md5($this->sql);
         $cacheData = $this->getCache($cacheKey);
 
         if ($cacheData)
@@ -513,11 +683,11 @@ class MSSQLWrapper {
     */
     public function loadObjectList( $key='' ) {
         if (!($cur = $this->query())) {
-                $this->_offset = 0;
+                $this->offset = 0;
             return null;
         }
 
-        $cacheKey  = md5($this->_sql);
+        $cacheKey  = md5($this->sql);
         $cacheData = $this->getCache($cacheKey);
 
         if ($cacheData)
@@ -526,7 +696,7 @@ class MSSQLWrapper {
         }
         else
         {
-        if ($this->_offset>1) mssql_field_seek($cur, $this->_offset-1);
+        if ($this->offset>1) mssql_field_seek($cur, $this->offset-1);
         $array = array();
         while ($row = mssql_fetch_object( $cur )) {
             if ($key) {
@@ -539,7 +709,7 @@ class MSSQLWrapper {
             $this->setCache($cacheKey, $array);
         }
 
-        $this->_offset = 0;
+        $this->offset = 0;
         return $array;
     }
 
@@ -547,15 +717,15 @@ class MSSQLWrapper {
     * @return The first row of the query.
     */
     public function loadRow() {
-        $this->_offset = 0;
-        if (!$this->_cur) {
-          if (!($this->_cur = $this->query())) {
+        $this->offset = 0;
+        if (!$this->cursorCopia) {
+          if (!($this->cursorCopia = $this->query())) {
             return null;
           }
         }
         $ret = null;
 
-        $cacheKey  = md5($this->_sql);
+        $cacheKey  = md5($this->sql);
         $cacheData = $this->getCache($cacheKey);
 
         if ($cacheData)
@@ -564,7 +734,7 @@ class MSSQLWrapper {
         }
         else
         {
-        if ($row = mssql_fetch_row( $this->_cur )) {
+        if ($row = mssql_fetch_row( $this->cursorCopia )) {
             $ret = $row;
         }
         //mssql_free_result( $cur );
@@ -583,11 +753,11 @@ class MSSQLWrapper {
     */
     public function loadRowList( $key=null ) {
         if (!($cur = $this->query())) {
-                $this->_offset = 0;
+                $this->offset = 0;
             return null;
         }
 
-        $cacheKey  = md5($this->_sql);
+        $cacheKey  = md5($this->sql);
         $cacheData = $this->getCache($cacheKey);
 
         if ($cacheData)
@@ -596,7 +766,7 @@ class MSSQLWrapper {
         }
         else
         {
-        if ($this->_offset>1) mssql_field_seek($cur, $this->_offset-1);
+        if ($this->offset>1) mssql_field_seek($cur, $this->offset-1);
         $array = array();
         while ($row = mssql_fetch_row( $cur )) {
             if ( !is_null( $key ) ) {
@@ -609,7 +779,7 @@ class MSSQLWrapper {
             $this->setCache($cacheKey, $array);
         }
 
-        $this->_offset = 0;
+        $this->offset = 0;
         return $array;
     }
     /**
@@ -640,7 +810,7 @@ class MSSQLWrapper {
         $this->setQuery( sprintf( $fmtsql, implode( ",", $fields ) ,  implode( ",", $values ) ) );
         ($verbose) && print "$sql<br />\n";
         if (!$this->query()) {
-                $this->_offset = 0;
+                $this->offset = 0;
             return false;
         }
         $this->setQuery ("SELECT @@IDENTITY");
@@ -649,7 +819,7 @@ class MSSQLWrapper {
         if ($keyName && $id) {
             $object->$keyName = $id;
         }
-        $this->_offset = 0;
+        $this->offset = 0;
         return true;
     }
 
@@ -732,9 +902,9 @@ class MSSQLWrapper {
     * @return string A standised error message
     */
     function stderr( $showSQL = false ) {
-        return "DB function failed with error number $this->_errorNum"
-        ."<br /><font color=\"red\">$this->_errorMsg</font>"
-        .($showSQL ? "<br />SQL = <pre>$this->_sql</pre>" : '');
+        return "DB function failed with error number $this->lastErrorCode"
+        ."<br /><font color=\"red\">$this->lastErrorMessage</font>"
+        .($showSQL ? "<br />SQL = <pre>$this->sql</pre>" : '');
     }
 
     public function insertid() {
@@ -761,13 +931,4 @@ class MSSQLWrapper {
     public function GenID( $foo1=null, $foo2=null ) {
         return '0';
     }
-
-    /**
-    * @return The first row of the query.
-    */
-    public function release() {
-        if($this->_cur) mssql_free_result( $this->_cur );
-        $this->_cur = null;
-    }
-
 }

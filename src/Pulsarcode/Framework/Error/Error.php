@@ -256,10 +256,16 @@ class Error extends Core
             $host = Router::getRequest()->getHttpHost();
             $uri  = Router::getRequest()->getRequestUri();
         }
-        else
+        elseif (Router::getRequest()->server->has('SSH_CONNECTION'))
         {
             $ip   = Router::getRequest()->server->get('SSH_CONNECTION');
             $host = Router::getRequest()->server->get('HOSTNAME');
+            $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
+        }
+        else
+        {
+            $ip   = Router::getRequest()->server->get('HOME');
+            $host = Router::getRequest()->server->get('USER');
             $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
         }
 
@@ -411,10 +417,16 @@ class Error extends Core
             $host = Router::getRequest()->getHttpHost();
             $uri  = Router::getRequest()->getRequestUri();
         }
-        else
+        elseif (Router::getRequest()->server->has('SSH_CONNECTION'))
         {
             $ip   = Router::getRequest()->server->get('SSH_CONNECTION');
             $host = Router::getRequest()->server->get('HOSTNAME');
+            $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
+        }
+        else
+        {
+            $ip   = Router::getRequest()->server->get('HOME');
+            $host = Router::getRequest()->server->get('USER');
             $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
         }
 
