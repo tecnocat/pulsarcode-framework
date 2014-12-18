@@ -95,18 +95,17 @@ class Controller extends Core
 
         if (isset($match['template']) !== false)
         {
-            $template = $match['template'];
+            $this->view->setTemplate($match['template']);
         }
-        else
+        elseif ($this->request->getRequestFormat() !== 'json')
         {
-            $template = sprintf('%s-layout.%s.twig', $action, $this->request->getRequestFormat());
+            $this->view->setTemplate(sprintf('%s-layout.%s.twig', $action, $this->request->getRequestFormat()));
         }
 
         $this->view->setController($controller . 'Controller');
         $this->view->setAction($action . 'Action');
         $this->view->setArgs(array_diff_key($match, Router::$internalValues));
         $this->view->setFormat($this->request->getRequestFormat());
-        $this->view->setTemplate($template);
         $this->view->setupForms();
         $this->callMethod($this->view->getAction(), $this->view->getArgs());
         $this->view->display();
