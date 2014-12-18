@@ -221,6 +221,10 @@ class Router extends Core
             {
                 self::$request->setRequestFormat(self::$routerParams['_format']);
             }
+            elseif (substr(self::$request->getPathInfo(), -4) === 'json')
+            {
+                self::$request->setRequestFormat('json');
+            }
 
             /**
              * TODO: Usar el componente de seguridad en vez de esta basura
