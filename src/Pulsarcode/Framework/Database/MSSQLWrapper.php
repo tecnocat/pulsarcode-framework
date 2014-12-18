@@ -359,7 +359,7 @@ class MSSQLWrapper extends Core
         }
         else
         {
-            trigger_error('Imposible seleccionar la base de datos');
+            trigger_error('Imposible seleccionar la base de datos: ' . $dbname, E_USER_ERROR);
         }
     }
 
