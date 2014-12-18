@@ -93,6 +93,10 @@ class Controller extends Core
     {
         list($controller, $action) = explode('::', $match['controller']);
 
+        $this->view->setController($controller . 'Controller');
+        $this->view->setAction($action . 'Action');
+        $this->view->setArgs(array_diff_key($match, Router::$internalValues));
+
         if (isset($match['template']) !== false)
         {
             $this->view->setTemplate($match['template']);
@@ -102,9 +106,6 @@ class Controller extends Core
             $this->view->setTemplate(sprintf('%s-layout.%s.twig', $action, $this->request->getRequestFormat()));
         }
 
-        $this->view->setController($controller . 'Controller');
-        $this->view->setAction($action . 'Action');
-        $this->view->setArgs(array_diff_key($match, Router::$internalValues));
         $this->view->setFormat($this->request->getRequestFormat());
         $this->view->setupForms();
         $this->callMethod($this->view->getAction(), $this->view->getArgs());
