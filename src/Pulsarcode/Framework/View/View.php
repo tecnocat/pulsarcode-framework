@@ -28,10 +28,6 @@ use Twig_Loader_Filesystem;
  */
 class View extends Core
 {
-    /**
-     * @var null Controlador de la petición
-     */
-    private $controller = null;
 
     /**
      * @var null Acción de la petición
@@ -44,19 +40,9 @@ class View extends Core
     private $args = array();
 
     /**
-     * @var string Formato de la petición
+     * @var null Controlador de la petición
      */
-    private $format = 'html';
-
-    /**
-     * @var Twig_Environment Motor Twig
-     */
-    private $twig;
-
-    /**
-     * @var FormFactoryInterface Constructor de formularios
-     */
-    private $formFactory;
+    private $controller = null;
 
     /**
      * @var Form Formulario para renderizar
@@ -64,9 +50,24 @@ class View extends Core
     private $form;
 
     /**
+     * @var FormFactoryInterface Constructor de formularios
+     */
+    private $formFactory;
+
+    /**
+     * @var string Formato de la petición
+     */
+    private $format = 'html';
+
+    /**
      * @var null Vista para pintar
      */
     private $template;
+
+    /**
+     * @var Twig_Environment Motor Twig
+     */
+    private $twig;
 
     /**
      * @var array Variables de la vista
@@ -91,19 +92,6 @@ class View extends Core
     }
 
     /**
-     * Establece una variable para la template
-     *
-     * @param string $variable Nombre de la variable
-     * @param mixed  $value    Valor de la variable
-     *
-     * @return $this
-     */
-    public function __set($variable, $value)
-    {
-        $this->variables[$variable] = $value;
-    }
-
-    /**
      * Obtiene una variable de la template o un método de la vista
      *
      * @param string $variable Nombre de la variable
@@ -120,6 +108,19 @@ class View extends Core
         $field = $this->variables[$variable];
 
         return ($field instanceof \Closure) ? $field($this) : $field;
+    }
+
+    /**
+     * Establece una variable para la template
+     *
+     * @param string $variable Nombre de la variable
+     * @param mixed  $value    Valor de la variable
+     *
+     * @return $this
+     */
+    public function __set($variable, $value)
+    {
+        $this->variables[$variable] = $value;
     }
 
     /**
@@ -150,187 +151,59 @@ class View extends Core
     }
 
     /**
-     * Inicializa los elementos para formularios
+     * Renderiza una template
      */
-    public function setupForms()
+    public function display()
     {
-        $csrfSecret   = md5(Config::getConfig()->application['token'] . time());
-        $csrfProvider = new SessionCsrfProvider(Router::getRequest()->getSession(), $csrfSecret);
-        $formEngine   = new TwigRendererEngine(array($this->getFormLayout()));
-        $formEngine->setEnvironment($this->twig);
-        $this->twig->addExtension(new FormExtension(new TwigRenderer($formEngine, $csrfProvider)));
+        $this->checkHeaders('VIEW_INVALID_DISPLAY_' . strtoupper($this->format), __FILE__, __LINE__);
 
-        if ($this->twig->isDebug())
+        switch ($this->format)
         {
-            $this->twig->addExtension(new Twig_Extension_Debug());
+            case 'html':
+            case 'xml':
+                header('Content-type: text/' . $this->format, '; charset=utf-8');
+                break;
+
+            case 'json':
+                header('Content-type: application/json; charset=utf-8');
+                $this->displayJSON();
+
+                return;
+
+            case 'rss':
+                header('Content-type: application/rss+xml; charset=utf-8');
+                break;
+
+            default:
+                trigger_error('No reconozco el formato ' . $this->format . ', no sé como procesarlo', E_USER_ERROR);
+                break;
         }
 
-        $formFactory = Forms::createFormFactoryBuilder()
-            ->addExtension(new HttpFoundationExtension())
-            ->addExtension(new CsrfExtension($csrfProvider))
-            ->addExtension(new ValidatorExtension(Validation::createValidator()))
-            ->getFormFactory();
+        $content = $this->fetch();
 
-        $this->setFormFactory($formFactory);
-    }
+        /**
+         * TODO: Refactorizar esta guarrería, se hace deprisa y corriendo por la subida
+         */
+        $controller = substr(strtolower($this->controller), 0, -10);
 
-    /**
-     * Establece la template para la vista
-     *
-     * @param string $template Archivo template para la vista
-     */
-    public function setTemplate($template)
-    {
-        $pathViews = Config::getConfig()->paths['views']['web'] . DIRECTORY_SEPARATOR;
-
-        if (isset($this->controller))
+        if (file_exists($js = sprintf('%s/js/%s.js', Config::getConfig()->paths['public'], $controller)))
         {
-            $template = substr($this->controller, 0, -10) . DIRECTORY_SEPARATOR . $template;
+            $script  = sprintf('<script type="text/javascript">%s</script>', file_get_contents($js));
+            $content = str_replace('</body>', "$script</body>", $content);
         }
 
-        if (!is_file($pathViews . $template) || !is_readable($pathViews . $template))
-        {
-            trigger_error('La template ' . $pathViews . $template . ' no existe o no tengo acceso', E_USER_ERROR);
-        }
-
-        $this->template = $template;
+        echo $content;
     }
 
     /**
-     * Obtiene la template para la vista
+     * Función para devolver una respuesta de error con un mensaje
      *
-     * @return string
+     * @param string $message Mensaje de error
      */
-    public function getTemplate()
+    public function error($message)
     {
-        return $this->template;
-    }
-
-    /**
-     * @param null $controller
-     */
-    public function setController($controller)
-    {
-        $this->controller = $controller;
-    }
-
-    /**
-     * @return null
-     */
-    public function getController()
-    {
-        return $this->controller;
-    }
-
-    /**
-     * @param null $action
-     */
-    public function setAction($action)
-    {
-        $this->action = $action;
-    }
-
-    /**
-     * @return null
-     */
-    public function getAction()
-    {
-        return $this->action;
-    }
-
-    /**
-     * @param array $args
-     */
-    public function setArgs($args)
-    {
-        $this->args = $args;
-    }
-
-    /**
-     * @return array
-     */
-    public function getArgs()
-    {
-        return $this->args;
-    }
-
-    /**
-     * @param string $format
-     */
-    public function setFormat($format)
-    {
-        $this->format = $format;
-    }
-
-    /**
-     * @return string
-     */
-    public function getFormat()
-    {
-        return $this->format;
-    }
-
-    /**
-     * Establece las variables para la template
-     *
-     * @param array $variables
-     */
-    public function setVariables(array $variables = array())
-    {
-        foreach ($variables as $name => $value)
-        {
-            $this->$name = $value;
-        }
-    }
-
-    /**
-     * Devuelve las variables para la template
-     *
-     * @return array $variables
-     */
-    public function getVariables()
-    {
-        return $this->variables;
-    }
-
-    /**
-     * Establece el constructor de formularios
-     *
-     * @param FormFactoryInterface $formFactory
-     */
-    public function setFormFactory(FormFactoryInterface $formFactory)
-    {
-        $this->formFactory = $formFactory;
-    }
-
-    /**
-     * Devuelve el constructor de formularios
-     *
-     * @return FormFactoryInterface
-     */
-    public function getFormFactory()
-    {
-        return $this->formFactory;
-    }
-
-    /**
-     * Establece el formulario para renderizar
-     *
-     * @param Form $form
-     */
-    public function setForm(Form $form)
-    {
-        $this->form = $form;
-    }
-
-    /**
-     * Devuelve el formulario para renderizar
-     *
-     * @return Form
-     */
-    public function getForm()
-    {
-        return $this->form;
+        $this->success = false;
+        $this->message = $message;
     }
 
     /**
@@ -383,48 +256,218 @@ class View extends Core
     }
 
     /**
-     * Renderiza una template
+     * @return null
      */
-    public function display()
+    public function getAction()
     {
-        $this->checkHeaders('VIEW_INVALID_DISPLAY_' . strtoupper($this->format), __FILE__, __LINE__);
+        return $this->action;
+    }
 
-        switch ($this->format)
+    /**
+     * @param null $action
+     */
+    public function setAction($action)
+    {
+        $this->action = $action;
+    }
+
+    /**
+     * @return array
+     */
+    public function getArgs()
+    {
+        return $this->args;
+    }
+
+    /**
+     * @param array $args
+     */
+    public function setArgs($args)
+    {
+        $this->args = $args;
+    }
+
+    /**
+     * @return null
+     */
+    public function getController()
+    {
+        return $this->controller;
+    }
+
+    /**
+     * @param null $controller
+     */
+    public function setController($controller)
+    {
+        $this->controller = $controller;
+    }
+
+    /**
+     * Devuelve el formulario para renderizar
+     *
+     * @return Form
+     */
+    public function getForm()
+    {
+        return $this->form;
+    }
+
+    /**
+     * Establece el formulario para renderizar
+     *
+     * @param Form $form
+     */
+    public function setForm(Form $form)
+    {
+        $this->form = $form;
+    }
+
+    /**
+     * Devuelve el constructor de formularios
+     *
+     * @return FormFactoryInterface
+     */
+    public function getFormFactory()
+    {
+        return $this->formFactory;
+    }
+
+    /**
+     * Establece el constructor de formularios
+     *
+     * @param FormFactoryInterface $formFactory
+     */
+    public function setFormFactory(FormFactoryInterface $formFactory)
+    {
+        $this->formFactory = $formFactory;
+    }
+
+    /**
+     * @return string
+     */
+    public function getFormat()
+    {
+        return $this->format;
+    }
+
+    /**
+     * @param string $format
+     */
+    public function setFormat($format)
+    {
+        $this->format = $format;
+    }
+
+    /**
+     * Obtiene la template para la vista
+     *
+     * @return string
+     */
+    public function getTemplate()
+    {
+        return $this->template;
+    }
+
+    /**
+     * Establece la template para la vista
+     *
+     * @param string $template Archivo template para la vista
+     */
+    public function setTemplate($template)
+    {
+        $pathViews = Config::getConfig()->paths['views']['web'] . DIRECTORY_SEPARATOR;
+
+        if (isset($this->controller))
         {
-            case 'html':
-            case 'xml':
-                header('Content-type: text/' . $this->format, '; charset=utf-8');
-                break;
-
-            case 'json':
-                header('Content-type: application/json; charset=utf-8');
-                $this->displayJSON();
-
-                return;
-
-            case 'rss':
-                header('Content-type: application/rss+xml; charset=utf-8');
-                break;
-
-            default:
-                trigger_error('No reconozco el formato ' . $this->format . ', no sé como procesarlo', E_USER_ERROR);
-                break;
+            $template = substr($this->controller, 0, -10) . DIRECTORY_SEPARATOR . $template;
         }
 
-        $content = $this->fetch();
-
-        /**
-         * TODO: Refactorizar esta guarrería, se hace deprisa y corriendo por la subida
-         */
-        $controller = substr(strtolower($this->controller), 0, -10);
-
-        if (file_exists($js = sprintf('%s/js/%s.js', Config::getConfig()->paths['public'], $controller)))
+        if (!is_file($pathViews . $template) || !is_readable($pathViews . $template))
         {
-            $script  = sprintf('<script type="text/javascript">%s</script>', file_get_contents($js));
-            $content = str_replace('</body>', "$script</body>", $content);
+            trigger_error('La template ' . $pathViews . $template . ' no existe o no tengo acceso', E_USER_ERROR);
         }
 
-        echo $content;
+        $this->template = $template;
+    }
+
+    /**
+     * Devuelve las variables para la template
+     *
+     * @return array $variables
+     */
+    public function getVariables()
+    {
+        return $this->variables;
+    }
+
+    /**
+     * Establece las variables para la template
+     *
+     * @param array $variables
+     */
+    public function setVariables(array $variables = array())
+    {
+        foreach ($variables as $name => $value)
+        {
+            $this->$name = $value;
+        }
+    }
+
+    /**
+     * Inicializa los elementos para formularios
+     */
+    public function setupForms()
+    {
+        $csrfSecret   = md5(Config::getConfig()->application['token'] . time());
+        $csrfProvider = new SessionCsrfProvider(Router::getRequest()->getSession(), $csrfSecret);
+        $formEngine   = new TwigRendererEngine(array($this->getFormLayout()));
+        $formEngine->setEnvironment($this->twig);
+        $this->twig->addExtension(new FormExtension(new TwigRenderer($formEngine, $csrfProvider)));
+
+        if ($this->twig->isDebug())
+        {
+            $this->twig->addExtension(new Twig_Extension_Debug());
+        }
+
+        $formFactory = Forms::createFormFactoryBuilder()
+            ->addExtension(new HttpFoundationExtension())
+            ->addExtension(new CsrfExtension($csrfProvider))
+            ->addExtension(new ValidatorExtension(Validation::createValidator()))
+            ->getFormFactory();
+
+        $this->setFormFactory($formFactory);
+    }
+
+    /**
+     * Función para devolver una respuesta de éxito con un mensaje
+     *
+     * @param string $message Mensaje de éxito
+     */
+    public function success($message)
+    {
+        $this->message = $message;
+    }
+
+    /**
+     * Función para comprobar que no se han enviado las cabeceras
+     *
+     * @param string $errorLevel Nivel del error a lanzar si falla
+     * @param string $errorFile  Archivo que llamo la comprobación
+     * @param int    $errorLine  Línea que llamo la comprobación
+     */
+    private function checkHeaders($errorLevel = 'UNKNOWN_ERROR', $errorFile = __FILE__, $errorLine = __LINE__)
+    {
+        if (headers_sent($file, $line) !== false)
+        {
+            $errorData = array(
+                'errorLevel'   => $errorLevel,
+                'errorMessage' => 'Imposible continuar, se han enviado cabeceras desde ' . $file . ':' . $line,
+                'errorFile'    => $errorFile,
+                'errorLine'    => $errorLine,
+            );
+            Error::setError('500', $errorData);
+        }
     }
 
     /**
@@ -462,27 +505,6 @@ class View extends Core
         }
 
         echo json_encode($json);
-    }
-
-    /**
-     * Función para comprobar que no se han enviado las cabeceras
-     *
-     * @param string $errorLevel Nivel del error a lanzar si falla
-     * @param string $errorFile  Archivo que llamo la comprobación
-     * @param int    $errorLine  Línea que llamo la comprobación
-     */
-    private function checkHeaders($errorLevel = 'UNKNOWN_ERROR', $errorFile = __FILE__, $errorLine = __LINE__)
-    {
-        if (headers_sent($file, $line) !== false)
-        {
-            $errorData = array(
-                'errorLevel'   => $errorLevel,
-                'errorMessage' => 'Imposible continuar, se han enviado cabeceras desde ' . $file . ':' . $line,
-                'errorFile'    => $errorFile,
-                'errorLine'    => $errorLine,
-            );
-            Error::setError('500', $errorData);
-        }
     }
 
     /**
