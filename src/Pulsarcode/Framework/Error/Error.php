@@ -333,6 +333,7 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
+        parent::finishRequest();
         exit;
     }
 
@@ -360,6 +361,7 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
+        parent::finishRequest();
         exit;
     }
 
@@ -387,6 +389,7 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
+        parent::finishRequest();
         exit;
     }
 
@@ -496,6 +499,7 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
+        parent::finishRequest();
         Error::parseErrors();
         exit;
     }
