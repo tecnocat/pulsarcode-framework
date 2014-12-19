@@ -126,6 +126,7 @@ class Router extends Core
      */
     public function __construct()
     {
+        parent::startRequest();
         parent::__construct();
 
         if (isset(self::$request) === false)
@@ -197,6 +198,7 @@ class Router extends Core
      */
     public static function dispatch()
     {
+        self::startRequest();
         self::$request = Request::createFromGlobals();
         self::$request->setSession(new Session());
 
@@ -297,6 +299,8 @@ class Router extends Core
             );
             Error::setError('405', $errorData);
         }
+
+        self::finishRequest();
     }
 
     /**

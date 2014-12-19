@@ -97,6 +97,7 @@ class MSSQLWrapper extends Core
      */
     public function __construct($host, $user, $pass, $dbname, $persistent = true)
     {
+        parent::startConnection();
         parent::__construct();
 
         $this->queryTimeStart();
@@ -318,6 +319,11 @@ class MSSQLWrapper extends Core
                 file_put_contents($file, $message . PHP_EOL, FILE_APPEND);
             }
         );
+
+        /**
+         * Guardamos también el mensaje en el log para ver información útil
+         */
+        trigger_error($message, E_USER_NOTICE);
     }
 
     /**
@@ -337,8 +343,7 @@ class MSSQLWrapper extends Core
      */
     private function queryTimeGet()
     {
-        list($usec, $sec) = explode(' ', microtime());
-        $microtime        = (float) $usec + (float) $sec;
+        $microtime        = microtime(true);
         $this->timeTotal += ($microtime - $this->timeStart);
 
         return sprintf('(Time: %.4fms Total: %.4fms)', $microtime - $this->timeStart, $this->timeTotal);

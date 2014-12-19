@@ -13,6 +13,16 @@ use Pulsarcode\Framework\Error\Error;
 class Core
 {
     /**
+     * @var float Instancia en el tiempo en elq ue se conectó con la base de datos
+     */
+    private static $startConnection;
+
+    /**
+     * @var float Instancia en el tiempo en el que se inició la petición
+     */
+    private static $startRequest;
+
+    /**
      * Constructor
      */
     public function __construct()
@@ -26,6 +36,26 @@ class Core
          * Capturador de cacheos
          */
         Cache::setupCacheObjects();
+    }
+
+    /**
+     * Guarda en el log el tiempo transcurrido durante la petición
+     */
+    protected static function finishRequest()
+    {
+        $microtime      = microtime(true);
+        $requestTime    = $microtime - self::$startRequest;
+        $connectionTime = (self::$startConnection) ? $microtime - self::$startConnection : 0;
+
+        trigger_error(
+            sprintf(
+                'Duración de la petición: %.4fms (Web: %.4fms | Database: %.4fms)',
+                $requestTime,
+                $requestTime - $connectionTime,
+                $connectionTime
+            ),
+            E_USER_NOTICE
+        );
     }
 
     /**
@@ -60,5 +90,21 @@ class Core
         }
 
         return ($exitCode === 0);
+    }
+
+    /**
+     * Setea el momento del tiempo en el que se conectó con la base de datos
+     */
+    protected static function startConnection()
+    {
+        self::$startConnection = (self::$startConnection) ?: microtime(true);
+    }
+
+    /**
+     * Setea el momento del tiempo en el que se inicia la petición
+     */
+    protected static function startRequest()
+    {
+        self::$startRequest = (self::$startRequest) ?: microtime(true);
     }
 }
