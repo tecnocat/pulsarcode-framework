@@ -321,10 +321,7 @@ class Error extends Core
             header('HTTP/1.1 403 Forbidden');
         }
 
-        /**
-         * TODO: Refactorizar esto para usar View::getFormat();
-         */
-        if (strpos(Router::getRequest()->getPathInfo(), '.json') !== false)
+        if ('json' === Router::getRequest()->getRequestFormat())
         {
             echo json_encode(array('success' => false, 'message' => 'Forbidden'));
         }
@@ -349,10 +346,7 @@ class Error extends Core
             header('HTTP/1.1 404 Not Found');
         }
 
-        /**
-         * TODO: Refactorizar esto para usar View::getFormat();
-         */
-        if (strpos(Router::getRequest()->getPathInfo(), '.json') !== false)
+        if ('json' === Router::getRequest()->getRequestFormat())
         {
             echo json_encode(array('success' => false, 'message' => 'Not Found'));
         }
@@ -377,10 +371,7 @@ class Error extends Core
             header('HTTP/1.1 405 Method Not Allowed');
         }
 
-        /**
-         * TODO: Refactorizar esto para usar View::getFormat();
-         */
-        if (strpos(Router::getRequest()->getPathInfo(), '.json') !== false)
+        if ('json' === Router::getRequest()->getRequestFormat())
         {
             echo json_encode(array('success' => false, 'message' => 'Method Not Allowed'));
         }
@@ -463,10 +454,7 @@ class Error extends Core
         {
             echo PHP_EOL . $message . PHP_EOL;
         }
-        /**
-         * TODO: Refactorizar esto para usar View::getFormat();
-         */
-        elseif (strpos(Router::getRequest()->getPathInfo(), '.json') !== false)
+        elseif ('json' === Router::getRequest()->getRequestFormat())
         {
             $response = array('success' => false, 'message' => 'Internal Server Error');
 
@@ -526,10 +514,7 @@ class Error extends Core
         {
             if (!empty(self::$errors) && in_array(Config::getConfig()->environment, self::$allowedEnvironments))
             {
-                /**
-                 * TODO: Refactorizar esto para usar View::getFormat();
-                 */
-                if (strpos(Router::getRequest()->getPathInfo(), '.json') === false)
+                if ('json' !== Router::getRequest()->getRequestFormat())
                 {
                     foreach (self::$errors as $errorLevel => $errorList)
                     {
