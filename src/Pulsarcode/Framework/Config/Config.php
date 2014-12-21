@@ -146,7 +146,7 @@ class Config extends Core
             $parametersYamlFile   = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE;
             $parametersDistFile   = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE . '.dist';
             $parametersCacheFile  = $cachePath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
-            $parametersConfigFile = $configPath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
+            $parametersConfigFile = __DIR__ . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
 
             if (file_exists($parametersYamlFile) === false)
             {
