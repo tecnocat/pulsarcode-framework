@@ -289,7 +289,7 @@ class Error extends Core
                 {
                     $mailer = new Mail();
                     $mailer->initConfig('autobot');
-                    $mailer->AddAddress(Config::getConfig()->error_reporting['email']);
+                    $mailer->AddAddress(Config::getConfig()->debug['mail']);
 
                     if (isset($toCopy) !== false)
                     {
@@ -440,7 +440,7 @@ class Error extends Core
 
         $mailer = new Mail();
         $mailer->initConfig('autobot');
-        $mailer->AddAddress(Config::getConfig()->error_reporting['email']);
+        $mailer->AddAddress(Config::getConfig()->debug['mail']);
         $mailer->setSubject(sprintf('[ERRORACO] (%s) [%s] %s - %s', $environment, $ip, $host, $uri));
         $mailer->setBody(sprintf('<h4>%s</h4><hr /><pre>%s</pre>', $message, $info));
         $mailer->Send();
