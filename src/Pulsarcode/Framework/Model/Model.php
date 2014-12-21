@@ -38,20 +38,6 @@ class Model extends Core
     }
 
     /**
-     * Establece el valor de un campo (mapeado si existe mapeo)
-     *
-     * @param string $field Nombre del campo
-     * @param mixed  $value Valor del campo
-     *
-     * @return $this
-     */
-    public function __set($field, $value)
-    {
-        $this->_map($field);
-        $this->$field = $value;
-    }
-
-    /**
      * Obtiene el valor de un campo (mapeado si existe mapeo)
      *
      * @param string $field Nombre del campo
@@ -63,6 +49,20 @@ class Model extends Core
         $this->_map($field);
 
         return $this->$field;
+    }
+
+    /**
+     * Establece el valor de un campo (mapeado si existe mapeo)
+     *
+     * @param string $field Nombre del campo
+     * @param mixed  $value Valor del campo
+     *
+     * @return $this
+     */
+    public function __set($field, $value)
+    {
+        $this->_map($field);
+        $this->$field = $value;
     }
 
     /**

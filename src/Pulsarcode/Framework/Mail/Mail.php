@@ -43,6 +43,18 @@ class Mail extends Core
     }
 
     /**
+     * Obtiene los valores internos de PHPMailer
+     *
+     * @param string $variable Nombre de la configuración
+     *
+     * @return null
+     */
+    public function __get($variable)
+    {
+        return (isset($this->mailer->$variable)) ? $this->mailer->$variable : null;
+    }
+
+    /**
      * Setea los valores internos de PHPMailer
      *
      * @param string $variable Nombre de la configuración
@@ -66,15 +78,14 @@ class Mail extends Core
     }
 
     /**
-     * Obtiene los valores internos de PHPMailer
+     * Agrega un destinatario mas a los existentes
      *
-     * @param string $variable Nombre de la configuración
-     *
-     * @return null
+     * @param string $address
+     * @param string $name
      */
-    public function __get($variable)
+    public function addAddress($address, $name = '')
     {
-        return (isset($this->mailer->$variable)) ? $this->mailer->$variable : null;
+        $this->mailer->addAddress($address, $name);
     }
 
     /**
@@ -103,104 +114,6 @@ class Mail extends Core
     }
 
     /**
-     * Setea el origen del email
-     *
-     * @param string $address Dirección del remitente
-     * @param string $name    Nombre del remitente
-     * @param bool   $auto    Setear el sender como este remitente
-     */
-    public function setFrom($address, $name = '', $auto = true)
-    {
-        $this->mailer->setFrom($address, $name, $auto);
-
-        if ($auto)
-        {
-            $this->Sender = $address;
-        }
-    }
-
-    /**
-     * Setea el listado de destinatarios
-     *
-     * @param array $to Lista de destinatarios
-     */
-    public function setTo(array $to = array())
-    {
-        foreach ($to as $recipient)
-        {
-            list($address, $name) = $recipient;
-            $this->mailer->addAddress($address, $name);
-        }
-    }
-
-    /**
-     * Agrega un destinatario mas a los existentes
-     *
-     * @param string $address
-     * @param string $name
-     */
-    public function addAddress($address, $name = '')
-    {
-        $this->mailer->addAddress($address, $name);
-    }
-
-    /**
-     * Setea el asunto del email
-     *
-     * @param string $subject Asunto del email
-     */
-    public function setSubject($subject = '')
-    {
-        $this->Subject = $subject;
-    }
-
-    /**
-     * Setea el cuerpo del email
-     *
-     * @param string $body Cuerpo del email
-     */
-    public function setBody($body = '')
-    {
-        $this->Body = $body;
-    }
-
-    /**
-     * Establece la template para el email
-     *
-     * @param string $template   Archivo template para la vista
-     * @param null   $controller Controlador para obtener la template
-     */
-    public function setTemplate($template, $controller = null)
-    {
-        $pathMails = Config::getConfig()->paths['views']['mail'] . DIRECTORY_SEPARATOR;
-
-        if (isset($controller))
-        {
-            $template = substr($controller, 0, -10) . DIRECTORY_SEPARATOR . $template;
-        }
-
-        if (!is_file($pathMails . $template) || !is_readable($pathMails . $template))
-        {
-            trigger_error('La template ' . $pathMails . $template . ' no existe o no tengo acceso', E_USER_ERROR);
-        }
-
-        $this->template = $template;
-    }
-
-    /**
-     * Establece las variables para la template
-     *
-     * @param array $variables
-     */
-    public function setVariables(array $variables = array())
-    {
-        foreach ($variables as $name => $value)
-        {
-            $this->variables[$name] = $value;
-        }
-    }
-
-    /**
      * Envía el email
      */
     public function send()
@@ -211,7 +124,7 @@ class Mail extends Core
         /**
          * En desarrollo mostramos información de la TPL que usa el email
          */
-        if (in_array($envinronment, array('loc', 'des')))
+        if (in_array($envinronment, Config::$debugEnvironments))
         {
             $prefix = 'Desarrollo (' . $envinronment . ')';
 
@@ -263,6 +176,93 @@ class Mail extends Core
 
             $message = sprintf('Ha sido imposible enviar el email con PHPMailer%s%s', PHP_EOL, print_r($info, true));
             trigger_error($message, E_USER_WARNING);
+        }
+    }
+
+    /**
+     * Setea el cuerpo del email
+     *
+     * @param string $body Cuerpo del email
+     */
+    public function setBody($body = '')
+    {
+        $this->Body = $body;
+    }
+
+    /**
+     * Setea el origen del email
+     *
+     * @param string $address Dirección del remitente
+     * @param string $name    Nombre del remitente
+     * @param bool   $auto    Setear el sender como este remitente
+     */
+    public function setFrom($address, $name = '', $auto = true)
+    {
+        $this->mailer->setFrom($address, $name, $auto);
+
+        if ($auto)
+        {
+            $this->Sender = $address;
+        }
+    }
+
+    /**
+     * Setea el asunto del email
+     *
+     * @param string $subject Asunto del email
+     */
+    public function setSubject($subject = '')
+    {
+        $this->Subject = $subject;
+    }
+
+    /**
+     * Establece la template para el email
+     *
+     * @param string $template   Archivo template para la vista
+     * @param null   $controller Controlador para obtener la template
+     */
+    public function setTemplate($template, $controller = null)
+    {
+        $pathMails = Config::getConfig()->paths['views']['mail'] . DIRECTORY_SEPARATOR;
+
+        if (isset($controller))
+        {
+            $template = substr($controller, 0, -10) . DIRECTORY_SEPARATOR . $template;
+        }
+
+        if (!is_file($pathMails . $template) || !is_readable($pathMails . $template))
+        {
+            trigger_error('La template ' . $pathMails . $template . ' no existe o no tengo acceso', E_USER_ERROR);
+        }
+
+        $this->template = $template;
+    }
+
+    /**
+     * Setea el listado de destinatarios
+     *
+     * @param array $to Lista de destinatarios
+     */
+    public function setTo(array $to = array())
+    {
+        foreach ($to as $recipient)
+        {
+            list($address, $name) = $recipient;
+            $this->mailer->addAddress($address, $name);
+        }
+    }
+
+    /**
+     * Establece las variables para la template
+     *
+     * @param array $variables
+     */
+    public function setVariables(array $variables = array())
+    {
+        foreach ($variables as $name => $value)
+        {
+            $this->variables[$name] = $value;
         }
     }
 

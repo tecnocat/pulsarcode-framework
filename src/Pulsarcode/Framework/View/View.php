@@ -81,7 +81,7 @@ class View extends Core
     {
         parent::__construct();
 
-        $debug      = (in_array(Config::getConfig()->environment, array('loc', 'des')));
+        $debug      = (in_array(Config::getConfig()->environment, Config::$debugEnvironments));
         $loader     = new Twig_Loader_Filesystem(Config::getConfig()->paths['views']['web']);
         $options    = array(
             'debug'            => $debug, // Debug sólo en local y desarrollo

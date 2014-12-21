@@ -14,61 +14,9 @@ use Pulsarcode\Framework\Router\Router;
 class MSSQLWrapper extends Core
 {
     /**
-     * @var string Query SQL para ejecutar en la base de datos
+     * @var array Queries ejecutadas para su pintado
      */
-    private $sql = '';
-
-    /**
-     * @var int Codigo del ultimo error de la base de datos
-     */
-    public $lastErrorCode = 0;
-
-    /**
-     * @var string Mensaje del ultimo error de la base de datos
-     */
-    public $lastErrorMessage = '';
-
-    /**
-     * @var resource Instancia de la conexión con la base de datos
-     */
-    public $link;
-
-    /**
-     * @var null Internal variable ultimo cursor utilizado
-     */
-    public $cursor;
-
-    /**
-     * @var boolean Debug mode
-     */
-    public $debug = false;
-
-    /**
-     * @var int desplazamiento hasta el limite
-     */
-    public $offset = 0;
-
-    /**
-     * @var string acotamiento de nombre de columnas
-     */
-    public $_nameQuote = '';
-
-    /**
-     * @var null Internal variable ultimo cursor utilizado
-     *
-     * TODO: Eliminar esta copia por que da lugar a bug en consultas consecutivas
-     */
-    public $cursorCopia = null;
-
-    /**
-     * @var float Internal variable comienzo a contar el tiempo
-     */
-    private $timeStart = 0.0;
-
-    /**
-     * @var float Internal variable tiempo acumulado desde la conexion
-     */
-    private $timeTotal = 0.0;
+    private static $queries = array();
 
     /**
      * @var array Campos tipo fecha
@@ -87,6 +35,68 @@ class MSSQLWrapper extends Core
     );
 
     /**
+     * @var string acotamiento de nombre de columnas
+     */
+    public $_nameQuote = '';
+
+    /**
+     * @var null Internal variable ultimo cursor utilizado
+     */
+    public $cursor;
+
+    /**
+     * @var null Internal variable ultimo cursor utilizado
+     *
+     * TODO: Eliminar esta copia por que da lugar a bug en consultas consecutivas
+     */
+    public $cursorCopia = null;
+
+    /**
+     * @var boolean Debug mode
+     */
+    public $debug = false;
+
+    /**
+     * @var int Codigo del ultimo error de la base de datos
+     */
+    public $lastErrorCode = 0;
+
+    /**
+     * @var string Mensaje del ultimo error de la base de datos
+     */
+    public $lastErrorMessage = '';
+
+    /**
+     * @var resource Instancia de la conexión con la base de datos
+     */
+    public $link;
+
+    /**
+     * @var int desplazamiento hasta el limite
+     */
+    public $offset = 0;
+
+    /**
+     * @var string Query SQL para ejecutar en la base de datos
+     */
+    private $sql = '';
+
+    /**
+     * @var float Tiempo en el que se finalizó la query
+     */
+    private $queryTimeFinish = 0.0;
+
+    /**
+     * @var float Tiempo en el que se inició la query
+     */
+    private $queryTimeStart = 0.0;
+
+    /**
+     * @var float Tiempo que se ha invertido en todas las queries
+     */
+    private $queryTimeTotal = 0.0;
+
+    /**
      * Constructor
      *
      * @param string $host
@@ -99,8 +109,6 @@ class MSSQLWrapper extends Core
     {
         parent::startConnection();
         parent::__construct();
-
-        $this->queryTimeStart();
 
         /**
          * TODO: Implementar en Util la validacion multiple de nulos y tipos (TR) para evitar este código repetido
@@ -166,7 +174,7 @@ class MSSQLWrapper extends Core
             trigger_error('Imposible seleccionar la base de datos "' . $dbname . '"', E_USER_ERROR);
         }
 
-        $this->debug = (in_array(Config::getConfig()->environment, array('loc', 'des')));
+        $this->debug = (in_array(Config::getConfig()->environment, Config::$debugEnvironments));
 
         if ($this->debug)
         {
@@ -215,7 +223,7 @@ class MSSQLWrapper extends Core
      */
     public function setQuery($sql, $offset = 0)
     {
-        $this->sql     = $sql;
+        $this->sql    = $sql;
         $this->offset = intval($offset);
     }
 
@@ -224,8 +232,8 @@ class MSSQLWrapper extends Core
      *
      * @return string Query SQL
      */
-    public function getQuery() {
-
+    public function getQuery()
+    {
         if (php_sapi_name() !== 'cli')
         {
             $result = '<pre>' . $this->sql . '</pre>';
@@ -259,9 +267,11 @@ class MSSQLWrapper extends Core
      */
     public function query()
     {
+        $this->queryTimeStart();
         $this->lastErrorCode    = 0;
         $this->lastErrorMessage = '';
         $this->cursor           = mssql_query($this->sql, $this->link);
+        $this->queryTimeFinish();
 
         if ($this->cursor === false)
         {
@@ -271,7 +281,7 @@ class MSSQLWrapper extends Core
 
         if ($this->debug)
         {
-            $this->log($this->sql);
+            $this->log($this->sql, $isQuery = true);
         }
 
         return ($this->cursor !== false) ? $this->cursor : false;
@@ -289,13 +299,14 @@ class MSSQLWrapper extends Core
      * Función para registrar eventos de la base de datos
      *
      * @param string $message Texto a registrar
+     * @param bool   $isQuery Indica si proviene de $this->query
      */
-    private function log($message)
+    private function log($message, $isQuery = false)
     {
         $message = sprintf(
             '[%s] %s %s',
             date('Y-m-d H:i:s'),
-            $this->queryTimeGet(),
+            $this->queryTimeGet($isQuery),
             preg_replace('/\s+/', ' ', $message)
         );
 
@@ -326,27 +337,37 @@ class MSSQLWrapper extends Core
         trigger_error($message, E_USER_NOTICE);
     }
 
+    private function queryTimeFinish()
+    {
+        $this->queryTimeFinish = microtime(true);
+    }
+
     /**
      * Inicializa un contador para mediciones de tiempos
      */
     private function queryTimeStart()
     {
-        list($usec, $sec) = explode(' ', microtime());
-        $microtime        = (float) $usec + (float) $sec;
-        $this->timeStart  = $microtime;
+        $this->queryTimeStart = microtime(true);
     }
 
     /**
      * Devuelve la marca de tiempo actual respecto al tiempo de inicio
      *
+     * @param bool $isQuery Indica si proviene de $this->query
+     *
      * @return string Marca de tiempo en milisegundos
      */
-    private function queryTimeGet()
+    private function queryTimeGet($isQuery = false)
     {
-        $microtime        = microtime(true);
-        $this->timeTotal += ($microtime - $this->timeStart);
+        $queryTime = ($this->queryTimeFinish - $this->queryTimeStart);
+        $this->queryTimeTotal += $queryTime;
 
-        return sprintf('(Time: %.4fms Total: %.4fms)', $microtime - $this->timeStart, $this->timeTotal);
+        if (false !== $isQuery)
+        {
+            self::$queries[] = array('time' => $queryTime, 'sql' => $this->sql);
+        }
+
+        return sprintf('(Query: %.4fms Total: %.4fms)', $queryTime, $this->queryTimeTotal);
     }
 
     /**
@@ -397,6 +418,35 @@ class MSSQLWrapper extends Core
         }
 
         $this->cursorCopia = null;
+    }
+
+    /**
+     * Pinta las consultas SQL realizadas ordenadas por su tiempo
+     */
+    public static function showQueries()
+    {
+        if (false !== Router::getRequest()->isXmlHttpRequest() || 'json' === Router::getRequest()->getRequestFormat())
+        {
+            return;
+        }
+
+        if (false !== Config::getConfig()->queries['show'])
+        {
+            if (in_array(Config::getConfig()->environment, Config::$debugEnvironments))
+            {
+                if (false === empty(self::$queries))
+                {
+                    $queries = self::$queries;
+                    usort($queries,
+                        function ($a, $b)
+                        {
+                            return $a['time'] < $b['time'];
+                        }
+                    );
+                    include Config::getConfig()->paths['views']['web'] . '/query-table.html.php';
+                }
+            }
+        }
     }
 
     /*******************************************************************************************************************

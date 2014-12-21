@@ -29,16 +29,16 @@ use Symfony\Component\Yaml\Yaml;
 class Router extends Core
 {
     /**
-     * Archivo de rutas
-     */
-    const ROUTES_FILE = 'routes.yml';
-
-    /**
      * Patrón para los namespaces de los controladores
      *
      * TODO: Quitar la dependencia del nombre del bundle, hacerlo dinámico buscando en src/
      */
     const CONTROLLER_NAME_PATTERN = 'Autocasion\\MainBundle\\Controller\\%sController';
+
+    /**
+     * Archivo de rutas
+     */
+    const ROUTES_FILE = 'routes.yml';
 
     /**
      * Patrón para importar un recurso CSS
@@ -51,16 +51,6 @@ class Router extends Core
     const STATIC_CSS_INSERT_PATTERN = '<style type="text/css"%s>%s</style>';
 
     /**
-     * Patrón para importar un recurso JS
-     */
-    const STATIC_JS_IMPORT_PATTERN = '<script type="text/javascript"%s src="%s"></script>';
-
-    /**
-     * Patrón para insertar un contenido JS
-     */
-    const STATIC_JS_INSERT_PATTERN = '<script type="text/javascript"%s>%s</script>';
-
-    /**
      * Patrón para importar un recurso IMG
      */
     const STATIC_IMG_IMPORT_PATTERN = '<img%s src="%s" />';
@@ -69,6 +59,16 @@ class Router extends Core
      * Patrón para insertar un contenido IMG
      */
     const STATIC_IMG_INSERT_PATTERN = '<img%s src="%s" />';
+
+    /**
+     * Patrón para importar un recurso JS
+     */
+    const STATIC_JS_IMPORT_PATTERN = '<script type="text/javascript"%s src="%s"></script>';
+
+    /**
+     * Patrón para insertar un contenido JS
+     */
+    const STATIC_JS_INSERT_PATTERN = '<script type="text/javascript"%s>%s</script>';
 
     /**
      * @var array Valores de parámetros internos del Request a excluir
@@ -112,14 +112,14 @@ class Router extends Core
     private static $routerParams = array();
 
     /**
-     * @var UrlMatcher Matcheador de rutas según definición y contexto
-     */
-    private static $urlMatcher;
-
-    /**
      * @var UrlGenerator Generador de rutas según definición y parámetros
      */
     private static $urlGenerator;
+
+    /**
+     * @var UrlMatcher Matcheador de rutas según definición y contexto
+     */
+    private static $urlMatcher;
 
     /**
      * Constructor
@@ -304,6 +304,67 @@ class Router extends Core
     }
 
     /**
+     * Genera una URL basandose en la configuración de rutas
+     *
+     * @param string $name       Nombre de la ruta
+     * @param array  $parameters Parámetros de la ruta
+     * @param bool   $absolute   Para generar ruta absoluta
+     *
+     * @return string
+     */
+    public static function generateUrl($name, array $parameters = array(), $absolute = true)
+    {
+        if (isset(self::$urlGenerator) === false)
+        {
+            new self();
+        }
+
+        return self::$urlGenerator->generate($name, $parameters, $absolute);
+    }
+
+    /**
+     * Obtiene un CSS para importarlo por URL o insertarlo en el HTML
+     *
+     * @param string $path       Ruta relativa al host de estáticos
+     * @param string $mode       Modo a usar para incluir el estático en el HTML
+     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para importarlo o insertarlo
+     */
+    public static function getCss($path, $mode = 'import', array $attributes = array())
+    {
+        return self::getStatic('css', $path, $mode, $attributes);
+    }
+
+    /**
+     * Obtiene un IMG para importarlo por URL o insertarlo en el HTML
+     *
+     * @param string $path       Ruta relativa al host de estáticos
+     * @param string $mode       Modo a usar para incluir el estático en el HTML
+     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para importarlo o insertarlo
+     */
+    public static function getImg($path, $mode = 'import', array $attributes = array())
+    {
+        return self::getStatic('img', $path, $mode, $attributes);
+    }
+
+    /**
+     * Obtiene un JS para importarlo por URL o insertarlo en el HTML
+     *
+     * @param string $path       Ruta relativa al host de estáticos
+     * @param string $mode       Modo a usar para incluir el estático en el HTML
+     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para importarlo o insertarlo
+     */
+    public static function getJs($path, $mode = 'import', array $attributes = array())
+    {
+        return self::getStatic('js', $path, $mode, $attributes);
+    }
+
+    /**
      * Obtiene un parámetro de la configuración de la ruta
      *
      * @param string $param   Nombre del parámetro
@@ -323,6 +384,39 @@ class Router extends Core
         }
 
         return $result;
+    }
+
+    /**
+     * Devuelve una instancia de Request en estático
+     *
+     * @return Request
+     */
+    public static function getRequest()
+    {
+        if (isset(self::$request) === false)
+        {
+            new self();
+        }
+
+        return self::$request;
+    }
+
+    /**
+     * Obtiene una URL absoluta con el protocolo, host, path y argumentos especificados
+     *
+     * @param string $host   Host para construir la URL (css|js|img|www)
+     * @param string $path   Ruta relativa al host especificado
+     * @param array  $query  Array de parámetros para concatenar a la URL
+     * @param string $scheme Protocolo usado para construir la URL
+     *
+     * @return string URL bien formada
+     */
+    public static function getUrl($host, $path, array $query = array(), $scheme = 'http')
+    {
+        $host  = Config::getConfig()->host[$host];
+        $query = (empty($query) === false) ? '?' . http_build_query($query) : '';
+
+        return sprintf('%s://%s%s%s', $scheme, $host, $path, $query);
     }
 
     /**
@@ -376,40 +470,6 @@ class Router extends Core
     }
 
     /**
-     * Devuelve una instancia de Request en estático
-     *
-     * @return Request
-     */
-    public static function getRequest()
-    {
-        if (isset(self::$request) === false)
-        {
-            new self();
-        }
-
-        return self::$request;
-    }
-
-    /**
-     * Genera una URL basandose en la configuración de rutas
-     *
-     * @param string $name       Nombre de la ruta
-     * @param array  $parameters Parámetros de la ruta
-     * @param bool   $absolute   Para generar ruta absoluta
-     *
-     * @return string
-     */
-    public static function generateUrl($name, array $parameters = array(), $absolute = true)
-    {
-        if (isset(self::$urlGenerator) === false)
-        {
-            new self();
-        }
-
-        return self::$urlGenerator->generate($name, $parameters, $absolute);
-    }
-
-    /**
      * Genera un error HTTP/1.1 403 Forbidden
      */
     public static function throw403()
@@ -455,63 +515,50 @@ class Router extends Core
     }
 
     /**
-     * Obtiene un CSS para importarlo por URL o insertarlo en el HTML
+     * Guarda las rutas en una clase PHP para mejorar rendimiento
      *
-     * @param string $path       Ruta relativa al host de estáticos
-     * @param string $mode       Modo a usar para incluir el estático en el HTML
-     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
-     *
-     * @return string Código HTML para importarlo o insertarlo
+     * @param RouteCollection $routeCollection
      */
-    public static function getCss($path, $mode = 'import', array $attributes = array())
+    private static function cacheRoutes(RouteCollection $routeCollection)
     {
-        return self::getStatic('css', $path, $mode, $attributes);
+        $routesCacheFile   = Config::getConfig()->paths['cache'] . DIRECTORY_SEPARATOR . self::ROUTES_FILE . '.php';
+        $routesCacheConfig = array('class' => 'RouterUrlMatcher');
+        $phpMatcherDumper  = new PhpMatcherDumper($routeCollection);
+
+        if (file_put_contents($routesCacheFile, $phpMatcherDumper->dump($routesCacheConfig)) === false)
+        {
+            trigger_error('Unable to write routes cache file', E_USER_ERROR);
+        }
     }
 
     /**
-     * Obtiene un JS para importarlo por URL o insertarlo en el HTML
+     * Transforma una ruta en un nombre interno
      *
-     * @param string $path       Ruta relativa al host de estáticos
-     * @param string $mode       Modo a usar para incluir el estático en el HTML
-     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
+     * @param string $path     Ruta
+     * @param array  $defaults Parámetros de la ruta
+     * @param array  $methods  Métodos de la ruta
      *
-     * @return string Código HTML para importarlo o insertarlo
+     * @return string
      */
-    public static function getJs($path, $mode = 'import', array $attributes = array())
+    private static function getRouteName($path = '', array $defaults = array(), array $methods = array())
     {
-        return self::getStatic('js', $path, $mode, $attributes);
-    }
+        if (isset($defaults['controller']))
+        {
+            list($controller, $action) = explode('::', $defaults['controller']);
+            $name = sprintf('controller_%s_%s_%s', $controller, $action, implode('_', $methods));
+        }
+        elseif (isset($defaults['redirect']))
+        {
+            $type = $defaults['redirect']['type'];
+            $path = $defaults['redirect']['path'];
+            $name = sprintf('redirect_%s_%s', $type, $path);
+        }
+        else
+        {
+            $name = sprintf('path_%s', $path);
+        }
 
-    /**
-     * Obtiene un IMG para importarlo por URL o insertarlo en el HTML
-     *
-     * @param string $path       Ruta relativa al host de estáticos
-     * @param string $mode       Modo a usar para incluir el estático en el HTML
-     * @param array  $attributes Atributos para aplicar en la etiqueta resultante
-     *
-     * @return string Código HTML para importarlo o insertarlo
-     */
-    public static function getImg($path, $mode = 'import', array $attributes = array())
-    {
-        return self::getStatic('img', $path, $mode, $attributes);
-    }
-
-    /**
-     * Obtiene una URL absoluta con el protocolo, host, path y argumentos especificados
-     *
-     * @param string $host   Host para construir la URL (css|js|img|www)
-     * @param string $path   Ruta relativa al host especificado
-     * @param array  $query  Array de parámetros para concatenar a la URL
-     * @param string $scheme Protocolo usado para construir la URL
-     *
-     * @return string URL bien formada
-     */
-    public static function getUrl($host, $path, array $query = array(), $scheme = 'http')
-    {
-        $host  = Config::getConfig()->host[$host];
-        $query = (empty($query) === false) ? '?' . http_build_query($query) : '';
-
-        return sprintf('%s://%s%s%s', $scheme, $host, $path, $query);
+        return Util::sanitizeString($name, '_');
     }
 
     /**
@@ -665,93 +712,6 @@ class Router extends Core
     }
 
     /**
-     * Devuelve una cadena HTML para representar valor="attributo"
-     *
-     * @param array $attributes Atributos para aplicar en la etiqueta resultante
-     *
-     * @return string Código HTML para insertar los atributos
-     */
-    private static function parseAttributes(array $attributes)
-    {
-        foreach ($attributes as $attribute => &$data)
-        {
-            $data = implode(' ', (array) $data);
-            $data = $attribute . '="' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '"';
-        }
-
-        return ($attributes) ? ' ' . implode(' ', $attributes) : '';
-    }
-
-    /**
-     * Devuelve los argumentos de la ruta coincidente
-     *
-     * @param string $path Ruta para buscar su coincidencia
-     *
-     * @return array
-     */
-    private static function match($path = '')
-    {
-        return self::$urlMatcher->match($path);
-    }
-
-    /**
-     * Carga y ejecuta el controlador apropiado
-     *
-     * @param array $match Datos procesados por el Router
-     */
-    private static function runController(array $match = array())
-    {
-        if (isset($match['controller']) === false)
-        {
-            trigger_error('No reconozco el controlador de esta petición', E_USER_ERROR);
-        }
-        elseif (strpos($match['controller'], '::') === false)
-        {
-            trigger_error('No reconozco la acción de la petición (' . $match['controller'] . ')', E_USER_ERROR);
-        }
-
-        list($controller, $action) = explode('::', $match['controller']);
-
-        $controllerName = sprintf(self::CONTROLLER_NAME_PATTERN, $controller);
-        /** @var Controller $controllerClass */
-        $controllerClass = new $controllerName();
-        $controllerClass->dispatch($match);
-    }
-
-    /**
-     * @param array $match Datos procesados por el Router
-     *
-     * TODO: Eliminar esto, sólo son válidas las rutas con controlador
-     *
-     * @deprecated since 13-07-2014
-     */
-    private static function runInclude(array $match = array())
-    {
-        if (isset($match['template']) === false)
-        {
-            trigger_error('La template para la vista no se ha establecido', E_USER_ERROR);
-        }
-        else
-        {
-            $view = new View();
-            $view->setTemplate($match['template']);
-            $view->display();
-        }
-    }
-
-    /**
-     * @param array $match Datos procesados por el Router
-     *
-     * TODO: Eliminar esto, sólo son válidas las rutas con controlador
-     *
-     * @deprecated since 13-07-2014
-     */
-    private static function runRedirect(array $match = array())
-    {
-        self::redirect($match['redirect']['path'], $match['redirect']['type']);
-    }
-
-    /**
      * Carga todas las rutas de la aplicación
      *
      * @param array           $routesConfig
@@ -809,49 +769,89 @@ class Router extends Core
     }
 
     /**
-     * Guarda las rutas en una clase PHP para mejorar rendimiento
+     * Devuelve los argumentos de la ruta coincidente
      *
-     * @param RouteCollection $routeCollection
+     * @param string $path Ruta para buscar su coincidencia
+     *
+     * @return array
      */
-    private static function cacheRoutes(RouteCollection $routeCollection)
+    private static function match($path = '')
     {
-        $routesCacheFile   = Config::getConfig()->paths['cache'] . DIRECTORY_SEPARATOR . self::ROUTES_FILE . '.php';
-        $routesCacheConfig = array('class' => 'RouterUrlMatcher');
-        $phpMatcherDumper  = new PhpMatcherDumper($routeCollection);
+        return self::$urlMatcher->match($path);
+    }
 
-        if (file_put_contents($routesCacheFile, $phpMatcherDumper->dump($routesCacheConfig)) === false)
+    /**
+     * Devuelve una cadena HTML para representar valor="attributo"
+     *
+     * @param array $attributes Atributos para aplicar en la etiqueta resultante
+     *
+     * @return string Código HTML para insertar los atributos
+     */
+    private static function parseAttributes(array $attributes)
+    {
+        foreach ($attributes as $attribute => &$data)
         {
-            trigger_error('Unable to write routes cache file', E_USER_ERROR);
+            $data = implode(' ', (array) $data);
+            $data = $attribute . '="' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '"';
+        }
+
+        return ($attributes) ? ' ' . implode(' ', $attributes) : '';
+    }
+
+    /**
+     * Carga y ejecuta el controlador apropiado
+     *
+     * @param array $match Datos procesados por el Router
+     */
+    private static function runController(array $match = array())
+    {
+        if (isset($match['controller']) === false)
+        {
+            trigger_error('No reconozco el controlador de esta petición', E_USER_ERROR);
+        }
+        elseif (strpos($match['controller'], '::') === false)
+        {
+            trigger_error('No reconozco la acción de la petición (' . $match['controller'] . ')', E_USER_ERROR);
+        }
+
+        list($controller, $action) = explode('::', $match['controller']);
+
+        $controllerName = sprintf(self::CONTROLLER_NAME_PATTERN, $controller);
+        /** @var Controller $controllerClass */
+        $controllerClass = new $controllerName();
+        $controllerClass->dispatch($match);
+    }
+
+    /**
+     * @param array $match Datos procesados por el Router
+     *
+     * TODO: Eliminar esto, sólo son válidas las rutas con controlador
+     *
+     * @deprecated since 13-07-2014
+     */
+    private static function runInclude(array $match = array())
+    {
+        if (isset($match['template']) === false)
+        {
+            trigger_error('La template para la vista no se ha establecido', E_USER_ERROR);
+        }
+        else
+        {
+            $view = new View();
+            $view->setTemplate($match['template']);
+            $view->display();
         }
     }
 
     /**
-     * Transforma una ruta en un nombre interno
+     * @param array $match Datos procesados por el Router
      *
-     * @param string $path     Ruta
-     * @param array  $defaults Parámetros de la ruta
-     * @param array  $methods  Métodos de la ruta
+     * TODO: Eliminar esto, sólo son válidas las rutas con controlador
      *
-     * @return string
+     * @deprecated since 13-07-2014
      */
-    private static function getRouteName($path = '', array $defaults = array(), array $methods = array())
+    private static function runRedirect(array $match = array())
     {
-        if (isset($defaults['controller']))
-        {
-            list($controller, $action) = explode('::', $defaults['controller']);
-            $name = sprintf('controller_%s_%s_%s', $controller, $action, implode('_', $methods));
-        }
-        elseif (isset($defaults['redirect']))
-        {
-            $type = $defaults['redirect']['type'];
-            $path = $defaults['redirect']['path'];
-            $name = sprintf('redirect_%s_%s', $type, $path);
-        }
-        else
-        {
-            $name = sprintf('path_%s', $path);
-        }
-
-        return Util::sanitizeString($name, '_');
+        self::redirect($match['redirect']['path'], $match['redirect']['type']);
     }
 }

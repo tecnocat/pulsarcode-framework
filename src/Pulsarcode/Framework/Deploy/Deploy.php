@@ -13,11 +13,6 @@ use Pulsarcode\Framework\Core\Core;
 class Deploy extends Core
 {
     /**
-     * Patrón para subir archivo temporal
-     */
-    const SCP_PATTERN = 'scp -v %s %s:%s.tmp';
-
-    /**
      * Patrón para mover archivo temporal
      */
     const MV_PATTERN = 'ssh -t %s "mv -v %s.tmp %s"';
@@ -26,6 +21,11 @@ class Deploy extends Core
      * Patrón para eliminar archivo temporal
      */
     const RM_PATTERN = 'ssh -t %s "rm -v %s.tmp"';
+
+    /**
+     * Patrón para subir archivo temporal
+     */
+    const SCP_PATTERN = 'scp -v %s %s:%s.tmp';
 
     /**
      * Sube uno o varios archivos a los roles especificados

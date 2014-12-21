@@ -1,0 +1,144 @@
+environment: loc
+
+deploy_version: 1406107298
+
+deploy_roles_app_host: root@127.0.0.1
+deploy_roles_app_root: ~/
+deploy_roles_web_host: root@127.0.0.1
+deploy_roles_web_root: ~/
+deploy_roles_db_host:  root@127.0.0.1
+deploy_roles_db_root:  ~/
+
+debug_mail: root@localhost
+
+application_key:    ApplicationKey
+application_token:  ApplicationToken
+application_secret: ApplicationSecret
+
+settings_messages_spam: 15
+
+cache_active:           false
+cache_show:             true
+cache_default_provider: memcached
+cache_default_expire:   300
+cache_apc_active:       true
+cache_memcache_active:  true
+cache_memcache_host:    127.0.0.1
+cache_memcache_port:    11211
+cache_memcached_active: true
+cache_memcached_host:   127.0.0.1
+cache_memcached_port:   11211
+cache_redis_active:     true
+cache_redis_host:       127.0.0.1
+cache_redis_port:       6379
+
+queries_send:  false
+queries_show:  true
+queries_write: true
+queries_slow:  2
+
+error_reporting_send:                false
+error_reporting_show:                true
+error_reporting_write:               true
+error_reporting_E_ERROR:             true
+error_reporting_E_WARNING:           true
+error_reporting_E_PARSE:             true
+error_reporting_E_NOTICE:            false
+error_reporting_E_CORE_ERROR:        true
+error_reporting_E_CORE_WARNING:      true
+error_reporting_E_COMPILE_ERROR:     true
+error_reporting_E_COMPILE_WARNING:   true
+error_reporting_E_USER_ERROR:        true
+error_reporting_E_USER_WARNING:      true
+error_reporting_E_USER_NOTICE:       false
+error_reporting_E_STRICT:            true
+error_reporting_E_RECOVERABLE_ERROR: true
+error_reporting_E_DEPRECATED:        true
+error_reporting_E_USER_DEPRECATED:   true
+
+database_mssql_server:       127.0.0.1
+database_mssql_port:         1433
+database_mssql_username:     root
+database_mssql_password:     ~
+database_mssql_database:     ~
+database_mssql_charset:      UTF-8
+database_mssql_driver:       ~
+database_mssql_driver_class: ~
+
+database_mysql_server:       127.0.0.1
+database_mysql_port:         3306
+database_mysql_username:     root
+database_mysql_password:     ~
+database_mysql_database:     ~
+database_mysql_charset:      utf8
+database_mysql_driver:       ~
+database_mysql_driver_class: ~
+
+database_salesforce_server:       127.0.0.1
+database_salesforce_port:         1433
+database_salesforce_username:     root
+database_salesforce_password:     ~
+database_salesforce_database:     ~
+database_salesforce_charset:      UTF-8
+database_salesforce_driver:       ~
+database_salesforce_driver_class: ~
+
+database_eurotax_server:       127.0.0.1
+database_eurotax_port:         1433
+database_eurotax_username:     root
+database_eurotax_password:     ~
+database_eurotax_database:     ~
+database_eurotax_charset:      UTF-8
+database_eurotax_driver:       ~
+database_eurotax_driver_class: ~
+
+database_eurotax_desarrollo_server:       127.0.0.1
+database_eurotax_desarrollo_port:         1433
+database_eurotax_desarrollo_username:     root
+database_eurotax_desarrollo_password:     ~
+database_eurotax_desarrollo_database:     ~
+database_eurotax_desarrollo_charset:      UTF-8
+database_eurotax_desarrollo_driver:       ~
+database_eurotax_desarrollo_driver_class: ~
+
+host_ads: ads.example.com
+host_www: www.example.com
+host_ww2: ww2.example.com
+host_api: api.example.com
+host_css: css.example.com
+host_js:  js.example.com
+host_img: img.example.com
+
+stack_file: ~/
+
+mail_default_auth: true
+mail_default_host: mail.example.com
+mail_default_port: 25
+mail_default_user: no-reply@example.com
+mail_default_pass: password
+mail_default_mail: no-reply@example.com
+mail_default_name: No Reply
+
+mail_autobot_auth: ~
+mail_autobot_host: ~
+mail_autobot_port: ~
+mail_autobot_user: ~
+mail_autobot_pass: ~
+mail_autobot_mail: no-reply@example.com
+mail_autobot_name: No Reply
+
+mail_autocasion_auth: ~
+mail_autocasion_host: ~
+mail_autocasion_port: ~
+mail_autocasion_user: ~
+mail_autocasion_pass: ~
+mail_autocasion_mail: no-reply@example.com
+mail_autocasion_name: No Reply
+
+mail_usuarios_auth: ~
+mail_usuarios_host: ~
+mail_usuarios_port: ~
+mail_usuarios_user: ~
+mail_usuarios_pass: ~
+mail_usuarios_mail: no-reply@example.com
+mail_usuarios_name: No Reply

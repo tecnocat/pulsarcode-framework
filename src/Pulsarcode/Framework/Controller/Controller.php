@@ -22,29 +22,19 @@ use Symfony\Component\HttpFoundation\Session\Session;
 class Controller extends Core
 {
     /**
+     * @var Cache Para gestionar la caché
+     */
+    protected $cache;
+
+    /**
      * @var Config Configuración de la aplicación
      */
     protected $config;
 
     /**
-     * @var Request Petición actual
-     */
-    protected $request;
-
-    /**
-     * @var Session Sesión actual
-     */
-    protected $session;
-
-    /**
      * @var Cookie Cookies actuales
      */
     protected $cookie;
-
-    /**
-     * @var Cache Para gestionar la caché
-     */
-    protected $cache;
 
     /**
      * @var Database Para gestionar la base de datos
@@ -60,6 +50,16 @@ class Controller extends Core
      * @var Mail Para gestionar los emails
      */
     protected $mail;
+
+    /**
+     * @var Request Petición actual
+     */
+    protected $request;
+
+    /**
+     * @var Session Sesión actual
+     */
+    protected $session;
 
     /**
      * @var View Para gestionar las vistas
@@ -113,16 +113,29 @@ class Controller extends Core
     }
 
     /**
-     * Obtiene un parámetro SERVER si existe
+     * Obtiene un parámetro COOKIE si existe
      *
      * @param string $string  Nombre del parámetro
      * @param null   $default Valor por defecto si no existe
      *
      * @return mixed
      */
-    protected function getServer($string, $default = null)
+    protected function getCookie($string, $default = null)
     {
-        return $this->request->server->get($string, $default);
+        return $this->request->cookies->get($string, $default);
+    }
+
+    /**
+     * Obtiene un parámetro FILES si existe
+     *
+     * @param string $string  Nombre del parámetro
+     * @param null   $default Valor por defecto si no existe
+     *
+     * @return mixed
+     */
+    protected function getFiles($string, $default = null)
+    {
+        return $this->request->files->get($string, $default);
     }
 
     /**
@@ -152,29 +165,16 @@ class Controller extends Core
     }
 
     /**
-     * Obtiene un parámetro FILES si existe
+     * Obtiene un parámetro SERVER si existe
      *
      * @param string $string  Nombre del parámetro
      * @param null   $default Valor por defecto si no existe
      *
      * @return mixed
      */
-    protected function getFiles($string, $default = null)
+    protected function getServer($string, $default = null)
     {
-        return $this->request->files->get($string, $default);
-    }
-
-    /**
-     * Obtiene un parámetro COOKIE si existe
-     *
-     * @param string $string  Nombre del parámetro
-     * @param null   $default Valor por defecto si no existe
-     *
-     * @return mixed
-     */
-    protected function getCookie($string, $default = null)
-    {
-        return $this->request->cookies->get($string, $default);
+        return $this->request->server->get($string, $default);
     }
 
     /**

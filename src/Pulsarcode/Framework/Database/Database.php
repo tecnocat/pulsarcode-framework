@@ -19,6 +19,11 @@ class Database extends Core
     private static $connections = array();
 
     /**
+     * @var bool Control para los capturadores de queries
+     */
+    private static $dispatched;
+
+    /**
      * @var string Query para ser ejecutada
      */
     private $query = '';
@@ -27,175 +32,6 @@ class Database extends Core
      * @var array Argumentos de la query a ser ejecutada
      */
     private $queryArguments = array();
-
-    /**
-     * Devuelve una instancia de la conexión a la base de datos usando MSSQLWrapper
-     *
-     * @param string $connectionName Nombre de la configuración de conexión
-     *
-     * @return MSSQLWrapper
-     */
-    public function getInstance($connectionName = 'mssql')
-    {
-        return $this->getOldWrappedConnection(self::getConnectionParams($connectionName));
-    }
-
-    /**
-     * Devuelve una instancia de la conexión a la base de datos usando DBAL
-     *
-     * @param string $connectionName
-     *
-     * @return \Doctrine\DBAL\Connection
-     */
-    public function getManager($connectionName = 'mysql')
-    {
-        return $this->getDbalConnection(self::getConnectionParams($connectionName));
-    }
-
-    /**
-     * Establece la query para ser ejecutada
-     *
-     * @param $query
-     *
-     * @return $this
-     */
-    public function setQuery($query)
-    {
-        $this->query = $query;
-
-        return $this;
-    }
-
-    /**
-     * Devuelve la query para ser ejecutada
-     *
-     * @return string
-     */
-    public function getQuery()
-    {
-        return strtr($this->query, $this->queryArguments);
-    }
-
-    /**
-     * Libera los datos de la query anterior
-     */
-    public function release()
-    {
-        $this->getInstance()->release();
-    }
-
-    /**
-     * Ejecuta la Query procesada en la instancia de la base de datos
-     *
-     * @return mixed
-     */
-    public function runQuery()
-    {
-        return $this->getInstance()->runQuery($this->getQuery());
-    }
-
-    /**
-     * Establece un argumento para reemplazar en la query
-     *
-     * @param string $argumentName  Nombre del argumento a reemplazar en la query
-     * @param string $argumentValue Valor del argumento a reemplazar en la query
-     *
-     * @return $this
-     */
-    public function setQueryArgument($argumentName, $argumentValue)
-    {
-        $this->queryArguments[$argumentName] = $argumentValue;
-
-        return $this;
-    }
-
-    /**
-     * Establece varios argumentos para reemplazar en la query
-     *
-     * @param array $arguments Argumentos a reemplazar en la query
-     *
-     * @return $this
-     */
-    public function setQueryArguments(array $arguments)
-    {
-        foreach ($arguments as $argumentName => $argumentValue)
-        {
-            $this->setQueryArgument($argumentName, $argumentValue);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Retorna si ha sido posible cargar los datos en el objeto
-     *
-     * @param null $object
-     *
-     * @return bool
-     */
-    public function loadObject(&$object = null)
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadObject($object);
-    }
-
-    /**
-     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como objetos
-     *
-     * @param string $key
-     *
-     * @return array
-     */
-    public function loadObjectList($key = '')
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadObjectList($key);
-    }
-
-    /**
-     * Retorna los datos en un array asociativo como arrays
-     *
-     * @return array
-     */
-    public function loadAssoc()
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadAssoc();
-    }
-
-    /**
-     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como arrays
-     *
-     * @param string $key
-     *
-     * @return array
-     */
-    public function loadAssocList($key = '')
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadAssocList($key);
-    }
-
-    /**
-     * Retorna el resultado de la query
-     *
-     * @return bool|null
-     */
-    public function loadResult()
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadResult();
-    }
 
     /**
      * Devuelve los parámetros de conexión para la configuración dada
@@ -247,6 +83,192 @@ class Database extends Core
         }
 
         return $result;
+    }
+
+    /**
+     * Configuración para capturar todas las queries
+     */
+    public static function setupQueryLogger()
+    {
+        if (isset(self::$dispatched) === false)
+        {
+            register_shutdown_function(
+                function ()
+                {
+                    MSSQLWrapper::showQueries();
+                }
+            );
+            self::$dispatched = true;
+        }
+    }
+
+    /**
+     * Devuelve una instancia de la conexión a la base de datos usando MSSQLWrapper
+     *
+     * @param string $connectionName Nombre de la configuración de conexión
+     *
+     * @return MSSQLWrapper
+     */
+    public function getInstance($connectionName = 'mssql')
+    {
+        return $this->getOldWrappedConnection(self::getConnectionParams($connectionName));
+    }
+
+    /**
+     * Devuelve una instancia de la conexión a la base de datos usando DBAL
+     *
+     * @param string $connectionName
+     *
+     * @return \Doctrine\DBAL\Connection
+     */
+    public function getManager($connectionName = 'mysql')
+    {
+        return $this->getDbalConnection(self::getConnectionParams($connectionName));
+    }
+
+    /**
+     * Devuelve la query para ser ejecutada
+     *
+     * @return string
+     */
+    public function getQuery()
+    {
+        return strtr($this->query, $this->queryArguments);
+    }
+
+    /**
+     * Establece la query para ser ejecutada
+     *
+     * @param $query
+     *
+     * @return $this
+     */
+    public function setQuery($query)
+    {
+        $this->query = $query;
+
+        return $this;
+    }
+
+    /**
+     * Retorna los datos en un array asociativo como arrays
+     *
+     * @return array
+     */
+    public function loadAssoc()
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadAssoc();
+    }
+
+    /**
+     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como arrays
+     *
+     * @param string $key
+     *
+     * @return array
+     */
+    public function loadAssocList($key = '')
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadAssocList($key);
+    }
+
+    /**
+     * Retorna si ha sido posible cargar los datos en el objeto
+     *
+     * @param null $object
+     *
+     * @return bool
+     */
+    public function loadObject(&$object = null)
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadObject($object);
+    }
+
+    /**
+     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como objetos
+     *
+     * @param string $key
+     *
+     * @return array
+     */
+    public function loadObjectList($key = '')
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadObjectList($key);
+    }
+
+    /**
+     * Retorna el resultado de la query
+     *
+     * @return bool|null
+     */
+    public function loadResult()
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadResult();
+    }
+
+    /**
+     * Libera los datos de la query anterior
+     */
+    public function release()
+    {
+        $this->getInstance()->release();
+    }
+
+    /**
+     * Ejecuta la Query procesada en la instancia de la base de datos
+     *
+     * @return mixed
+     */
+    public function runQuery()
+    {
+        return $this->getInstance()->runQuery($this->getQuery());
+    }
+
+    /**
+     * Establece un argumento para reemplazar en la query
+     *
+     * @param string $argumentName  Nombre del argumento a reemplazar en la query
+     * @param string $argumentValue Valor del argumento a reemplazar en la query
+     *
+     * @return $this
+     */
+    public function setQueryArgument($argumentName, $argumentValue)
+    {
+        $this->queryArguments[$argumentName] = $argumentValue;
+
+        return $this;
+    }
+
+    /**
+     * Establece varios argumentos para reemplazar en la query
+     *
+     * @param array $arguments Argumentos a reemplazar en la query
+     *
+     * @return $this
+     */
+    public function setQueryArguments(array $arguments)
+    {
+        foreach ($arguments as $argumentName => $argumentValue)
+        {
+            $this->setQueryArgument($argumentName, $argumentValue);
+        }
+
+        return $this;
     }
 
     /**

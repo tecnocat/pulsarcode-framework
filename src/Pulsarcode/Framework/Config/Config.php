@@ -71,6 +71,13 @@ class Config extends Core
     const PARAMETERS_FILE = 'parameters.yml';
 
     /**
+     * Entornos permitidos para mostrar información de debug
+     *
+     * @var array $debugEnvironments
+     */
+    public static $debugEnvironments = array('loc', 'dev');
+
+    /**
      * Toda la configuración de la aplicación y archivos adicionales
      *
      * @var null $config
@@ -137,9 +144,9 @@ class Config extends Core
             );
 
             $parametersYamlFile   = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE;
-            $parametersDistFile   = $configPath . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE . '.dist';
+            $parametersDistFile   = __DIR__ . DIRECTORY_SEPARATOR . self::PARAMETERS_FILE . '.dist';
             $parametersCacheFile  = $cachePath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
-            $parametersConfigFile = $configPath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
+            $parametersConfigFile = __DIR__ . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
 
             if (file_exists($parametersYamlFile) === false)
             {
@@ -156,6 +163,22 @@ class Config extends Core
                 }
 
                 die(sprintf($pattern, $parametersYamlFile));
+            }
+            elseif (file_exists($parametersDistFile) === false)
+            {
+                /**
+                 * TODO: Mostrar en una template para verlo mejor
+                 */
+                if (php_sapi_name() == 'cli')
+                {
+                    $pattern = PHP_EOL . 'Missing parameters dist file %s' . PHP_EOL;
+                }
+                else
+                {
+                    $pattern = '<h1>Missing parameters dist file %s</h1>';
+                }
+
+                die(sprintf($pattern, $parametersDistFile));
             }
             /**
              * TODO: Meter el config.yml en el Framework y hacerlo extendible
@@ -216,33 +239,7 @@ class Config extends Core
                  */
                 foreach ($parametersContent as $parameterName => $parameterValue)
                 {
-                    /**
-                     * Corrector de cambios de booleanos a 0 o 1
-                     */
-                    switch (true)
-                    {
-                        // bool
-                        case ($parameterValue === true):
-                            $parameterValue = 'true';
-                            break;
-
-                        // bool
-                        case ($parameterValue === false):
-                            $parameterValue = 'false';
-                            break;
-
-                        // null
-                        case (isset($parameterValue) === false):
-                            $parameterValue = '~';
-                            break;
-
-                        // string
-                        case (is_numeric($parameterValue) === false):
-                            $parameterValue = "'$parameterValue'";
-                            break;
-                    }
-
-                    $configContent = str_replace("%$parameterName%", $parameterValue, $configContent);
+                    $configContent = str_replace("%$parameterName%", $this->phpToYaml($parameterValue), $configContent);
                 }
 
                 $parametersContent = $yaml->parse($configContent);
@@ -293,17 +290,6 @@ class Config extends Core
     }
 
     /**
-     * Establece la configuración dada
-     *
-     * @param string $configName  Nombre de la configuración
-     * @param mixed  $configValue Valor de la configuración
-     */
-    public function __set($configName, $configValue)
-    {
-        self::$config[$configName] = $configValue;
-    }
-
-    /**
      * Devuelve la configuración si existe o null
      *
      * @param string $configName Nombre de la configuración
@@ -313,6 +299,17 @@ class Config extends Core
     public function __get($configName)
     {
         return (isset(self::$config[$configName])) ? self::$config[$configName] : null;
+    }
+
+    /**
+     * Establece la configuración dada
+     *
+     * @param string $configName  Nombre de la configuración
+     * @param mixed  $configValue Valor de la configuración
+     */
+    public function __set($configName, $configValue)
+    {
+        self::$config[$configName] = $configValue;
     }
 
     /**
@@ -329,11 +326,26 @@ class Config extends Core
         $yaml        = new Yaml();
         $yamlContent = $yaml->parse($parametersYamlFile);
         $distContent = $yaml->parse($parametersDistFile);
-        $diffContent = array_diff_key($distContent, $yamlContent);
+        $testContent = array(
+            'Missing parameters:' => array_diff_key($distContent, $yamlContent),
+            'Unknown parameters:' => array_diff_key($yamlContent, $distContent),
+        );
 
-        if (empty($diffContent) === false)
+        foreach ($testContent as $errorTitle => $diffContent)
         {
-            $parametersErrors['Missing parameters:'] = array_keys($diffContent);
+            if (empty($diffContent) === false)
+            {
+                $parametersErrors[$errorTitle] = array();
+
+                foreach ($diffContent as $fieldKey => $fieldValue)
+                {
+                    $parametersErrors[$errorTitle][] = sprintf(
+                        '%s (Value: %s)',
+                        $fieldKey,
+                        $this->phpToYaml($fieldValue)
+                    );
+                }
+            }
         }
 
         foreach ($distContent as $distKey => $distValue)
@@ -353,5 +365,40 @@ class Config extends Core
         }
 
         return (empty($parametersErrors));
+    }
+
+    /**
+     * Procesa un valor PHP y lo castea a tipo YAML
+     *
+     * @param mixed $parameterValue Valor casteado de tipo PHP
+     *
+     * @return string  Valor casteado de tipo YAML
+     */
+    private function phpToYaml($parameterValue)
+    {
+        switch (true)
+        {
+            // bool
+            case (true === $parameterValue):
+                $parameterValue = 'true';
+                break;
+
+            // bool
+            case (false === $parameterValue):
+                $parameterValue = 'false';
+                break;
+
+            // null
+            case (false === isset($parameterValue)):
+                $parameterValue = '~';
+                break;
+
+            // string
+            case (false === is_numeric($parameterValue)):
+                $parameterValue = "'$parameterValue'";
+                break;
+        }
+
+        return $parameterValue;
     }
 }

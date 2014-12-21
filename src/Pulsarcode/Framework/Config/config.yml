@@ -1,0 +1,250 @@
+# Selección de entorno, con esto se determina en la aplicación que entorno está configurado
+# Los valores permitidos son: (loc)alhost / (dev)elopment / (pre)production / (pro)duction
+environment: %environment%
+
+# Configuración de deploy
+deploy:
+
+    # Última versión del último deploy realizado
+    version: %deploy_version%
+
+    # Roles de servidores para los deploys (IPs / hostnames)
+    roles:
+
+        # Servidores de procesos
+        app:
+            host: %deploy_roles_app_host%
+            root: %deploy_roles_app_root%
+
+        # Servidores Web
+        web:
+            host: %deploy_roles_web_host%
+            root: %deploy_roles_web_root%
+
+        # Servidores de base de datos
+        db:
+            host: %deploy_roles_db_host%
+            root: %deploy_roles_db_root%
+
+# Configuración de debug
+debug:
+
+    # Email donde reportar los eventos o los emails enviados
+    mail: %debug_mail%
+
+# Configuración de la aplicación
+application:
+
+    # Token para encriptación de passwords de autenticación
+    key:    %application_key%
+
+    # Token para encriptación en formularios XSS/CSFR
+    token:  %application_token%
+
+    # Token para encriptación en passwords
+    secret: %application_secret%
+
+# Configuraciones generales
+settings:
+
+    # Configuraciones para los mensajes
+    messages:
+        # Número máximo de mensajes para considerar como spam
+        spam: %settings_messages_spam%
+
+# Configuraciones de caché
+cache:
+
+    # Caché habilitada o deshabilitada globalmente
+    active: %cache_active%
+
+    # Mostramos los objetos cacheados?
+    show:   %cache_show%
+
+    # Proveedor por defecto
+    default_provider: %cache_default_provider%
+
+    # Tiempo de caducidad por defecto
+    default_expire:   %cache_default_expire%
+
+    # Proveedores disponibles
+    providers:
+
+        # Configuración de APC
+        apc:
+            active: %cache_apc_active%
+
+        # Configuración de Memcache
+        memcache:
+            active: %cache_memcache_active%
+            host:   %cache_memcache_host%
+            port:   %cache_memcache_port%
+
+        # Configuración de Memcached
+        memcached:
+            active: %cache_memcached_active%
+            host:   %cache_memcached_host%
+            port:   %cache_memcached_port%
+
+        # Configuración de Redis
+        redis:
+            active: %cache_redis_active%
+            host:   %cache_redis_host%
+            port:   %cache_redis_port%
+
+# Configuración de reporte de queries
+queries:
+
+    # Enviamos las queries lentas por email?
+    send:  %queries_send%
+
+    # Mostramos las queries lentas en la Web?
+    show:  %queries_show%
+
+    # Guardamos las queries lentas en el log?
+    write: %queries_write%
+
+    # Que tiempo es considerado una query lenta? (en segundos)
+    slow:  %queries_slow%
+
+# Configuración de reporte de errores
+error_reporting:
+
+    # Enviamos los errores por mail?
+    send:  %error_reporting_send%
+
+    # Mostramos los errores en la Web?
+    show:  %error_reporting_show%
+
+    # Guardamos los errores en el log?
+    write: %error_reporting_write%
+
+    # Errores a reportar (true reporta, false o sin configurar no)
+    E_ERROR:             %error_reporting_E_ERROR%
+    E_WARNING:           %error_reporting_E_WARNING%
+    E_PARSE:             %error_reporting_E_PARSE%
+    E_NOTICE:            %error_reporting_E_NOTICE%
+    E_CORE_ERROR:        %error_reporting_E_CORE_ERROR%
+    E_CORE_WARNING:      %error_reporting_E_CORE_WARNING%
+    E_COMPILE_ERROR:     %error_reporting_E_COMPILE_ERROR%
+    E_COMPILE_WARNING:   %error_reporting_E_COMPILE_WARNING%
+    E_USER_ERROR:        %error_reporting_E_USER_ERROR%
+    E_USER_WARNING:      %error_reporting_E_USER_WARNING%
+    E_USER_NOTICE:       %error_reporting_E_USER_NOTICE%
+    E_STRICT:            %error_reporting_E_STRICT%
+    E_RECOVERABLE_ERROR: %error_reporting_E_RECOVERABLE_ERROR%
+    E_DEPRECATED:        %error_reporting_E_DEPRECATED%
+    E_USER_DEPRECATED:   %error_reporting_E_USER_DEPRECATED%
+
+# Configuración de bases de datos
+database:
+
+    # Configuración de MSSQL
+    mssql:
+        server:       %database_mssql_server%
+        port:         %database_mssql_port%
+        username:     %database_mssql_username%
+        password:     %database_mssql_password%
+        database:     %database_mssql_database%
+        charset:      %database_mssql_charset%
+        driver:       %database_mssql_driver%
+        driver_class: %database_mssql_driver_class%
+
+    # Configuración de MySQL
+    mysql:
+        server:       %database_mysql_server%
+        port:         %database_mysql_port%
+        username:     %database_mysql_username%
+        password:     %database_mysql_password%
+        database:     %database_mysql_database%
+        charset:      %database_mysql_charset%
+        driver:       %database_mysql_driver%
+        driver_class: %database_mysql_driver_class%
+
+    # Configuración de SalesForce
+    salesforce:
+        server:       %database_salesforce_server%
+        port:         %database_salesforce_port%
+        username:     %database_salesforce_username%
+        password:     %database_salesforce_password%
+        database:     %database_salesforce_database%
+        charset:      %database_salesforce_charset%
+        driver:       %database_salesforce_driver%
+        driver_class: %database_salesforce_driver_class%
+
+    # Configuración de Eurotax
+    eurotax:
+        server:       %database_eurotax_server%
+        port:         %database_eurotax_port%
+        username:     %database_eurotax_username%
+        password:     %database_eurotax_password%
+        database:     %database_eurotax_database%
+        charset:      %database_eurotax_charset%
+        driver:       %database_eurotax_driver%
+        driver_class: %database_eurotax_driver_class%
+
+    # Configuración de Eurotax desarrollo
+    eurotax_desarrollo:
+        server:       %database_eurotax_desarrollo_server%
+        port:         %database_eurotax_desarrollo_port%
+        username:     %database_eurotax_desarrollo_username%
+        password:     %database_eurotax_desarrollo_password%
+        database:     %database_eurotax_desarrollo_database%
+        charset:      %database_eurotax_desarrollo_charset%
+        driver:       %database_eurotax_desarrollo_driver%
+        driver_class: %database_eurotax_desarrollo_driver_class%
+
+# Configuración de dominios
+host:
+    ads: %host_ads%
+    www: %host_www%
+    css: %host_css%
+    js:  %host_js%
+    img: %host_img%
+
+# Configuración de stack
+stack:
+    file: %stack_file%
+
+# Configuración de mail
+mail:
+
+    # Configuración por defecto
+    default:
+        auth: %mail_default_auth% # Autenticación habilitada?
+        host: %mail_default_host% # Servidor de correo
+        port: %mail_default_port% # Puerto del servidor de correo
+        user: %mail_default_user% # Usuario del correo
+        pass: %mail_default_pass% # Contraseña del correo
+        mail: %mail_default_mail% # Email del correo (puede ser otro)
+        name: %mail_default_name% # Nombre para mostrar
+
+    # Configuración para Auto Bot (reemplaza campos default excepto los nulos o ~)
+    autobot:
+        auth: %mail_autobot_auth% # Autenticación habilitada?
+        host: %mail_autobot_host% # Servidor de correo
+        port: %mail_autobot_port% # Puerto del servidor de correo
+        user: %mail_autobot_user% # Usuario del correo
+        pass: %mail_autobot_pass% # Contraseña del correo
+        mail: %mail_autobot_mail% # Email del correo (puede ser otro)
+        name: %mail_autobot_name% # Nombre para mostrar
+
+    # Configuración para Autocasion (reemplaza campos default excepto los nulos o ~)
+    autocasion:
+        auth: %mail_autocasion_auth% # Autenticación habilitada?
+        host: %mail_autocasion_host% # Servidor de correo
+        port: %mail_autocasion_port% # Puerto del servidor de correo
+        user: %mail_autocasion_user% # Usuario del correo
+        pass: %mail_autocasion_pass% # Contraseña del correo
+        mail: %mail_autocasion_mail% # Email del correo (puede ser otro)
+        name: %mail_autocasion_name% # Nombre para mostrar
+
+    # Configuración para Usuarios (reemplaza campos default excepto los nulos o ~)
+    usuarios:
+        auth: %mail_usuarios_auth% # Autenticación habilitada?
+        host: %mail_usuarios_host% # Servidor de correo
+        port: %mail_usuarios_port% # Puerto del servidor de correo
+        user: %mail_usuarios_user% # Usuario del correo
+        pass: %mail_usuarios_pass% # Contraseña del correo
+        mail: %mail_usuarios_mail% # Email del correo (puede ser otro)
+        name: %mail_usuarios_name% # Nombre para mostrar

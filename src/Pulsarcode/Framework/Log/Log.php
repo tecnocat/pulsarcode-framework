@@ -44,6 +44,16 @@ class Log extends Core
     }
 
     /**
+     * Devuelve el registro para ser procesaro
+     *
+     * @return string
+     */
+    public function getMessages()
+    {
+        return $this->messages;
+    }
+
+    /**
      * @param string $message      El mensaje a registrar
      * @param array  $placeholders Tokens para remplazar en $message
      * @param bool   $timestamp    Agregar timestamp si es true
@@ -56,15 +66,16 @@ class Log extends Core
     }
 
     /**
-     * @param string $message      El mensaje a registrar
-     * @param array  $placeholders Tokens para remplazar en $message
-     * @param bool   $timestamp    Agregar timestamp si es true
+     * Registra todas las líneas y las borra
      *
-     * TODO: Diferenciar entre cli y HTML para pintar colores usando <success></success>
+     * @param array $output Salida de una ejecución exec()
      */
-    public function success($message = '', array $placeholders = array(), $timestamp = false)
+    public function parseOutput(array $output = array())
     {
-        $this->setMessage(sprintf(static::LOG_MESSAGE_SUCCESS, $message), $placeholders, $timestamp);
+        foreach ($output as $message)
+        {
+            $this->setMessage($message);
+        }
     }
 
     /**
@@ -101,25 +112,14 @@ class Log extends Core
     }
 
     /**
-     * Devuelve el registro para ser procesaro
+     * @param string $message      El mensaje a registrar
+     * @param array  $placeholders Tokens para remplazar en $message
+     * @param bool   $timestamp    Agregar timestamp si es true
      *
-     * @return string
+     * TODO: Diferenciar entre cli y HTML para pintar colores usando <success></success>
      */
-    public function getMessages()
+    public function success($message = '', array $placeholders = array(), $timestamp = false)
     {
-        return $this->messages;
-    }
-
-    /**
-     * Registra todas las líneas y las borra
-     *
-     * @param array $output Salida de una ejecución exec()
-     */
-    public function parseOutput(array $output = array())
-    {
-        foreach ($output as $message)
-        {
-            $this->setMessage($message);
-        }
+        $this->setMessage(sprintf(static::LOG_MESSAGE_SUCCESS, $message), $placeholders, $timestamp);
     }
 }

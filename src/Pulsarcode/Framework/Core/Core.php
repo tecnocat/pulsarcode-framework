@@ -3,6 +3,7 @@
 namespace Pulsarcode\Framework\Core;
 
 use Pulsarcode\Framework\Cache\Cache;
+use Pulsarcode\Framework\Database\Database;
 use Pulsarcode\Framework\Error\Error;
 
 /**
@@ -36,6 +37,11 @@ class Core
          * Capturador de cacheos
          */
         Cache::setupCacheObjects();
+
+        /**
+         * Capturador de queries
+         */
+        Database::setupQueryLogger();
     }
 
     /**
