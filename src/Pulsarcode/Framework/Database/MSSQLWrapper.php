@@ -330,11 +330,6 @@ class MSSQLWrapper extends Core
                 file_put_contents($file, $message . PHP_EOL, FILE_APPEND);
             }
         );
-
-        /**
-         * Guardamos también el mensaje en el log para ver información útil
-         */
-        trigger_error($message, E_USER_NOTICE);
     }
 
     private function queryTimeFinish()
