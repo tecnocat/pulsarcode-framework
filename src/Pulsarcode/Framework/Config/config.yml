@@ -92,11 +92,23 @@ cache:
             host:   %cache_redis_host%
             port:   %cache_redis_port%
 
+# Configuración de reporte de queries
+queries:
+
+    # Enviamos las queries lentas por email?
+    send:  %queries_send%
+
+    # Mostramos las queries lentas en la Web?
+    show:  %queries_show%
+
+    # Guardamos las queries lentas en el log?
+    write: %queries_write%
+
+    # Que tiempo es considerado una query lenta? (en segundos)
+    slow:  %queries_slow%
+
 # Configuración de reporte de errores
 error_reporting:
-
-    # Email para reportar los errores
-    email: %error_reporting_email%
 
     # Enviamos los errores por mail?
     send:  %error_reporting_send%

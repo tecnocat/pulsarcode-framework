@@ -19,6 +19,11 @@ class Database extends Core
     private static $connections = array();
 
     /**
+     * @var bool Control para los capturadores de queries
+     */
+    private static $dispatched;
+
+    /**
      * @var string Query para ser ejecutada
      */
     private $query = '';
@@ -78,6 +83,23 @@ class Database extends Core
         }
 
         return $result;
+    }
+
+    /**
+     * Configuración para capturar todas las queries
+     */
+    public static function setupQueryLogger()
+    {
+        if (isset(self::$dispatched) === false)
+        {
+            register_shutdown_function(
+                function ()
+                {
+                    MSSQLWrapper::showQueries();
+                }
+            );
+            self::$dispatched = true;
+        }
     }
 
     /**

@@ -32,7 +32,11 @@ cache_redis_active:     true
 cache_redis_host:       127.0.0.1
 cache_redis_port:       6379
 
-error_reporting_email:               root@localhost
+queries_send:  false
+queries_show:  true
+queries_write: true
+queries_slow:  2
+
 error_reporting_send:                false
 error_reporting_show:                true
 error_reporting_write:               true
