@@ -25,6 +25,28 @@ class Error extends Core
     const ERROR_LOG_SIZE = 5242880;
 
     /**
+     * @var array Colores para según que tipo de error
+     */
+    public static $errorColors = array(
+        'success' => '#5cb85c',
+        'info'    => '#5bc0de',
+        'warning' => '#f0ad4e',
+        'error'   => '#d9534f',
+    );
+
+    /**
+     * @var array Errores por los que la aplicación lanzará un 500
+     */
+    public static $errorHalts = array(
+        E_ERROR,
+        E_PARSE,
+        E_CORE_ERROR,
+        E_COMPILE_ERROR,
+        E_USER_ERROR,
+        E_RECOVERABLE_ERROR,
+    );
+
+    /**
      * @var array Niveles de error transformados a su nombre
      */
     public static $errorLevel = array(
@@ -46,31 +68,9 @@ class Error extends Core
     );
 
     /**
-     * @var array Errores por los que la aplicación lanzará un 500
+     * @var bool Control para los capturadores de errores
      */
-    public static $errorHalts = array(
-        E_ERROR,
-        E_PARSE,
-        E_CORE_ERROR,
-        E_COMPILE_ERROR,
-        E_USER_ERROR,
-        E_RECOVERABLE_ERROR,
-    );
-
-    /**
-     * @var array Colores para según que tipo de error
-     */
-    public static $errorColors = array(
-        'success' => '#5cb85c',
-        'info'    => '#5bc0de',
-        'warning' => '#f0ad4e',
-        'error'   => '#d9534f',
-    );
-
-    /**
-     * @var Error Instancia estática de sí misma
-     */
-    private static $instance;
+    private static $dispatched;
 
     /**
      * @var array Errores para registrar o mostrar
@@ -78,9 +78,215 @@ class Error extends Core
     private static $errors = array();
 
     /**
-     * @var bool Control para los capturadores de errores
+     * @var Error Instancia estática de sí misma
      */
-    private static $dispatched;
+    private static $instance;
+
+    /**
+     * Devuelve un color para pintar la tabla de errores segun su importancia
+     *
+     * @param $errorLevel
+     *
+     * @return mixed
+     */
+    public static function getErrorColor($errorLevel)
+    {
+        switch ($errorLevel)
+        {
+            case 'E_ERROR':
+            case 'E_PARSE':
+            case 'E_CORE_ERROR':
+            case 'E_COMPILE_ERROR':
+            case 'E_USER_ERROR':
+            case 'E_RECOVERABLE_ERROR':
+                $color = self::$errorColors['error'];
+                break;
+
+            case 'E_WARNING':
+            case 'E_CORE_WARNING':
+            case 'E_COMPILE_WARNING':
+            case 'E_USER_WARNING':
+                $color = self::$errorColors['warning'];
+                break;
+
+            case 'E_NOTICE':
+            case 'E_USER_NOTICE':
+                $color = self::$errorColors['info'];
+                break;
+
+            case 'E_STRICT':
+            case 'E_DEPRECATED':
+            case 'E_USER_DEPRECATED':
+                $color = self::$errorColors['success'];
+                break;
+
+            default:
+                trigger_error('Error desconocido: ' . $errorLevel, E_USER_NOTICE);
+                $color = self::$errorColors['warning'];
+                break;
+        }
+
+        return $color;
+    }
+
+    /**
+     * Devuelve la instancia de sí misma en estático
+     *
+     * @return Error
+     */
+    public static function getInstance()
+    {
+        if (isset(self::$instance) === false)
+        {
+            self::$instance = new self();
+        }
+
+        return self::$instance;
+    }
+
+    /**
+     * Envía un correo con información del petate
+     *
+     * @param string $subject Asunto del email
+     * @param string $body    Cuerpo del email
+     * @param null   $toCopy  Dirección en copia
+     */
+    public static function mail($subject, $body = '', $toCopy = null)
+    {
+        $environment = Config::getConfig()->environment;
+
+        if (php_sapi_name() !== 'cli')
+        {
+            $ip   = Router::getRequest()->server->get('SERVER_ADDR');
+            $host = Router::getRequest()->getHttpHost();
+            $uri  = Router::getRequest()->getRequestUri();
+        }
+        elseif (Router::getRequest()->server->has('SSH_CONNECTION'))
+        {
+            $ip   = Router::getRequest()->server->get('SSH_CONNECTION');
+            $host = Router::getRequest()->server->get('HOSTNAME');
+            $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
+        }
+        else
+        {
+            $ip   = Router::getRequest()->server->get('HOME');
+            $host = Router::getRequest()->server->get('USER');
+            $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
+        }
+
+        $info = print_r(
+            array(
+                '$_GET'     => Router::getRequest()->query->all(),
+                '$_POST'    => Router::getRequest()->request->all(),
+                '$_FILES'   => Router::getRequest()->files->all(),
+                '$_COOKIE'  => Router::getRequest()->cookies->all(),
+                '$_SERVER'  => Router::getRequest()->server->all(),
+                '$_SESSION' => Router::getRequest()->getSession()->all(),
+            ),
+            true
+        );
+
+        /**
+         * Los errores 500 se envian siempre por mail en pre y pro, en loc y dev sólo si lo tenemos activado
+         */
+        if (Config::getConfig()->error_reporting['send'] || !in_array($environment, Config::$debugEnvironments))
+        {
+            /**
+             * Enviamos los emilios en background like a boss
+             */
+            register_shutdown_function(
+                function () use ($subject, $body, $toCopy, $environment, $ip, $host, $uri, $info)
+                {
+                    $mailer = new Mail();
+                    $mailer->initConfig('autobot');
+                    $mailer->AddAddress(Config::getConfig()->debug['mail']);
+
+                    if (isset($toCopy) !== false)
+                    {
+                        $mailer->AddAddress($toCopy, $toCopy);
+                    }
+
+                    $mailer->setSubject(sprintf('[ERRORACO] (%s) [%s] %s - %s', $environment, $ip, $host, $uri));
+                    $mailer->setBody(sprintf('<h4>%s</h4><hr />%s<hr /><pre>%s</pre>', $subject, $body, $info));
+                    $mailer->Send();
+                }
+            );
+        }
+    }
+
+    /**
+     * Procesa los errores y después los elimina
+     */
+    public static function parseErrors()
+    {
+        Error::showErrors();
+        Error::writeErrors();
+        self::$errors = array();
+    }
+
+    /**
+     * Crea un nuevo error del tipo dado
+     *
+     * @param string $errorType Tipo de error
+     * @param array  $errorData Datos del error
+     */
+    public static function setError($errorType = '', array $errorData = array())
+    {
+        if (Config::getConfig()->error_reporting['show'] || Config::getConfig()->error_reporting['write'])
+        {
+            $errorLevel = $errorData['errorLevel'];
+            $isErrorPHP = (isset(Error::$errorLevel[$errorLevel]) !== false);
+
+            if ($isErrorPHP)
+            {
+                $errorLevel = Error::$errorLevel[$errorLevel];
+            }
+
+            /**
+             * Por omisión si no tenemos configurado el nivel de error no reportamos dicho nivel
+             */
+            if ($isErrorPHP && isset(Config::getConfig()->error_reporting[$errorLevel]) === false)
+            {
+                return;
+            }
+            /**
+             * Si por el contrario lo tenemos puesto a false tampoco reportamos
+             */
+            elseif ($isErrorPHP && Config::getConfig()->error_reporting[$errorLevel] === false)
+            {
+                return;
+            }
+            /**
+             * En caso contrario reportamos dicho nivel
+             */
+            else
+            {
+                /**
+                 * Evitamos mostrar los mismos errores
+                 */
+                $uniqid = md5($errorData['errorFile'] . $errorData['errorLine'] . $errorData['errorMessage']);
+
+                self::$errors[$errorLevel][$uniqid] = $errorData;
+            }
+        }
+
+        if ($errorType == '403')
+        {
+            self::throw403();
+        }
+        elseif ($errorType == '404')
+        {
+            self::throw404();
+        }
+        elseif ($errorType == '405')
+        {
+            self::throw405();
+        }
+        elseif ($errorType == '500')
+        {
+            self::throw500($errorData);
+        }
+    }
 
     /**
      * Configuración para capturar todos los tipos de errores
@@ -171,136 +377,49 @@ class Error extends Core
     }
 
     /**
-     * Crea un nuevo error del tipo dado
-     *
-     * @param string $errorType Tipo de error
-     * @param array  $errorData Datos del error
+     * Función para pintar los errores
      */
-    public static function setError($errorType = '', array $errorData = array())
+    private static function showErrors()
     {
-        if (Config::getConfig()->error_reporting['show'] || Config::getConfig()->error_reporting['write'])
-        {
-            $errorLevel = $errorData['errorLevel'];
-            $isErrorPHP = (isset(Error::$errorLevel[$errorLevel]) !== false);
-
-            if ($isErrorPHP)
-            {
-                $errorLevel = Error::$errorLevel[$errorLevel];
-            }
-
-            /**
-             * Por omisión si no tenemos configurado el nivel de error no reportamos dicho nivel
-             */
-            if ($isErrorPHP && isset(Config::getConfig()->error_reporting[$errorLevel]) === false)
-            {
-                return;
-            }
-            /**
-             * Si por el contrario lo tenemos puesto a false tampoco reportamos
-             */
-            elseif ($isErrorPHP && Config::getConfig()->error_reporting[$errorLevel] === false)
-            {
-                return;
-            }
-            /**
-             * En caso contrario reportamos dicho nivel
-             */
-            else
-            {
-                /**
-                 * Evitamos mostrar los mismos errores
-                 */
-                $uniqid = md5($errorData['errorFile'] . $errorData['errorLine'] . $errorData['errorMessage']);
-
-                self::$errors[$errorLevel][$uniqid] = $errorData;
-            }
-        }
-
-        if ($errorType == '403')
-        {
-            self::throw403();
-        }
-        elseif ($errorType == '404')
-        {
-            self::throw404();
-        }
-        elseif ($errorType == '405')
-        {
-            self::throw405();
-        }
-        elseif ($errorType == '500')
-        {
-            self::throw500($errorData);
-        }
-    }
-
-    /**
-     * Envía un correo con información del petate
-     *
-     * @param string $subject Asunto del email
-     * @param string $body    Cuerpo del email
-     * @param null   $toCopy  Dirección en copia
-     */
-    public static function mail($subject, $body = '', $toCopy = null)
-    {
-        $environment = Config::getConfig()->environment;
-
-        if (php_sapi_name() !== 'cli')
-        {
-            $ip   = Router::getRequest()->server->get('SERVER_ADDR');
-            $host = Router::getRequest()->getHttpHost();
-            $uri  = Router::getRequest()->getRequestUri();
-        }
-        elseif (Router::getRequest()->server->has('SSH_CONNECTION'))
-        {
-            $ip   = Router::getRequest()->server->get('SSH_CONNECTION');
-            $host = Router::getRequest()->server->get('HOSTNAME');
-            $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
-        }
-        else
-        {
-            $ip   = Router::getRequest()->server->get('HOME');
-            $host = Router::getRequest()->server->get('USER');
-            $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
-        }
-
-        $info = print_r(
-            array(
-                '$_GET'     => Router::getRequest()->query->all(),
-                '$_POST'    => Router::getRequest()->request->all(),
-                '$_FILES'   => Router::getRequest()->files->all(),
-                '$_COOKIE'  => Router::getRequest()->cookies->all(),
-                '$_SERVER'  => Router::getRequest()->server->all(),
-                '$_SESSION' => Router::getRequest()->getSession()->all(),
-            ),
-            true
-        );
-
         /**
-         * Los errores 500 se envian siempre por mail en pre y pro, en loc y dev sólo si lo tenemos activado
+         * No respondemos ante llamadas AJAX
          */
-        if (Config::getConfig()->error_reporting['send'] || !in_array($environment, Config::$debugEnvironments))
+        if (Router::getRequest()->isXmlHttpRequest() === false && Config::getConfig()->error_reporting['show'])
         {
-            /**
-             * Enviamos los emilios en background like a boss
-             */
-            register_shutdown_function(
-                function () use ($subject, $body, $toCopy, $environment, $ip, $host, $uri, $info)
+            if (!empty(self::$errors) && in_array(Config::getConfig()->environment, Config::$debugEnvironments))
+            {
+                if ('json' !== Router::getRequest()->getRequestFormat())
                 {
-                    $mailer = new Mail();
-                    $mailer->initConfig('autobot');
-                    $mailer->AddAddress(Config::getConfig()->debug['mail']);
-
-                    if (isset($toCopy) !== false)
+                    foreach (self::$errors as $errorLevel => $errorList)
                     {
-                        $mailer->AddAddress($toCopy, $toCopy);
+                        /**
+                         * Si es por línea de comandos pintamos un resumen en texto plano
+                         */
+                        if (php_sapi_name() == 'cli')
+                        {
+                            foreach ($errorList as $errorData)
+                            {
+                                printf(
+                                    '[%s] [%s] %s:%s %s %s',
+                                    date('Y-m-d H:i:s'),
+                                    $errorLevel,
+                                    $errorData['errorFile'],
+                                    $errorData['errorLine'],
+                                    $errorData['errorMessage'],
+                                    PHP_EOL
+                                );
+                            }
+                        }
+                        /**
+                         * Si es por petición Web usamos una template
+                         */
+                        else
+                        {
+                            require Config::getConfig()->paths['views']['web'] . '/error-table.html.php';
+                        }
                     }
-
-                    $mailer->setSubject(sprintf('[ERRORACO] (%s) [%s] %s - %s', $environment, $ip, $host, $uri));
-                    $mailer->setBody(sprintf('<h4>%s</h4><hr />%s<hr /><pre>%s</pre>', $subject, $body, $info));
-                    $mailer->Send();
                 }
-            );
+            }
         }
     }
 
@@ -488,63 +607,6 @@ class Error extends Core
     }
 
     /**
-     * Procesa los errores y después los elimina
-     */
-    public static function parseErrors()
-    {
-        Error::showErrors();
-        Error::writeErrors();
-        self::$errors = array();
-    }
-
-    /**
-     * Función para pintar los errores
-     */
-    private static function showErrors()
-    {
-        /**
-         * No respondemos ante llamadas AJAX
-         */
-        if (Router::getRequest()->isXmlHttpRequest() === false && Config::getConfig()->error_reporting['show'])
-        {
-            if (!empty(self::$errors) && in_array(Config::getConfig()->environment, Config::$debugEnvironments))
-            {
-                if ('json' !== Router::getRequest()->getRequestFormat())
-                {
-                    foreach (self::$errors as $errorLevel => $errorList)
-                    {
-                        /**
-                         * Si es por línea de comandos pintamos un resumen en texto plano
-                         */
-                        if (php_sapi_name() == 'cli')
-                        {
-                            foreach ($errorList as $errorData)
-                            {
-                                printf(
-                                    '[%s] [%s] %s:%s %s %s',
-                                    date('Y-m-d H:i:s'),
-                                    $errorLevel,
-                                    $errorData['errorFile'],
-                                    $errorData['errorLine'],
-                                    $errorData['errorMessage'],
-                                    PHP_EOL
-                                );
-                            }
-                        }
-                        /**
-                         * Si es por petición Web usamos una template
-                         */
-                        else
-                        {
-                            require Config::getConfig()->paths['views']['web'] . '/error-table.html.php';
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /**
      * Función para grabar los errores en el log
      */
     private static function writeErrors()
@@ -584,67 +646,5 @@ class Error extends Core
                 }
             }
         }
-    }
-
-    /**
-     * Devuelve la instancia de sí misma en estático
-     *
-     * @return Error
-     */
-    public static function getInstance()
-    {
-        if (isset(self::$instance) === false)
-        {
-            self::$instance = new self();
-        }
-
-        return self::$instance;
-    }
-
-    /**
-     * Devuelve un color para pintar la tabla de errores segun su importancia
-     *
-     * @param $errorLevel
-     *
-     * @return mixed
-     */
-    public static function getErrorColor($errorLevel)
-    {
-        switch ($errorLevel)
-        {
-            case 'E_ERROR':
-            case 'E_PARSE':
-            case 'E_CORE_ERROR':
-            case 'E_COMPILE_ERROR':
-            case 'E_USER_ERROR':
-            case 'E_RECOVERABLE_ERROR':
-                $color = self::$errorColors['error'];
-                break;
-
-            case 'E_WARNING':
-            case 'E_CORE_WARNING':
-            case 'E_COMPILE_WARNING':
-            case 'E_USER_WARNING':
-                $color = self::$errorColors['warning'];
-                break;
-
-            case 'E_NOTICE':
-            case 'E_USER_NOTICE':
-                $color = self::$errorColors['info'];
-                break;
-
-            case 'E_STRICT':
-            case 'E_DEPRECATED':
-            case 'E_USER_DEPRECATED':
-                $color = self::$errorColors['success'];
-                break;
-
-            default:
-                trigger_error('Error desconocido: ' . $errorLevel, E_USER_NOTICE);
-                $color = self::$errorColors['warning'];
-                break;
-        }
-
-        return $color;
     }
 }

@@ -29,6 +29,58 @@ class Database extends Core
     private $queryArguments = array();
 
     /**
+     * Devuelve los parámetros de conexión para la configuración dada
+     *
+     * @param string $conectionName Nombre de la configuración a usar
+     *
+     * @return array Parámetros de la conexión
+     */
+    public static function getConnectionParams($conectionName)
+    {
+        $result = array();
+
+        if (isset(Config::getConfig()->database[$conectionName]) !== false)
+        {
+            $server      = Config::getConfig()->database[$conectionName]['server'];
+            $port        = Config::getConfig()->database[$conectionName]['port'];
+            $username    = Config::getConfig()->database[$conectionName]['username'];
+            $password    = Config::getConfig()->database[$conectionName]['password'];
+            $database    = Config::getConfig()->database[$conectionName]['database'];
+            $charset     = Config::getConfig()->database[$conectionName]['charset'];
+            $driver      = Config::getConfig()->database[$conectionName]['driver'];
+            $driverClass = Config::getConfig()->database[$conectionName]['driver_class'];
+
+            $result = array(
+                'host'     => $server,
+                'port'     => $port,
+                'user'     => $username,
+                'password' => $password,
+                'dbname'   => $database,
+                'charset'  => $charset,
+            );
+
+            if (isset($driver) !== false)
+            {
+                $result['driver'] = $driver;
+            }
+            elseif (isset($driverClass) !== false)
+            {
+                $result['driverClass'] = $driverClass;
+            }
+            else
+            {
+                trigger_error('No se ha definido Driver para la conexión ' . $conectionName, E_USER_ERROR);
+            }
+        }
+        else
+        {
+            trigger_error('No existe la configuración de conexión ' . $conectionName, E_USER_ERROR);
+        }
+
+        return $result;
+    }
+
+    /**
      * Devuelve una instancia de la conexión a la base de datos usando MSSQLWrapper
      *
      * @param string $connectionName Nombre de la configuración de conexión
@@ -53,6 +105,16 @@ class Database extends Core
     }
 
     /**
+     * Devuelve la query para ser ejecutada
+     *
+     * @return string
+     */
+    public function getQuery()
+    {
+        return strtr($this->query, $this->queryArguments);
+    }
+
+    /**
      * Establece la query para ser ejecutada
      *
      * @param $query
@@ -67,13 +129,74 @@ class Database extends Core
     }
 
     /**
-     * Devuelve la query para ser ejecutada
+     * Retorna los datos en un array asociativo como arrays
      *
-     * @return string
+     * @return array
      */
-    public function getQuery()
+    public function loadAssoc()
     {
-        return strtr($this->query, $this->queryArguments);
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadAssoc();
+    }
+
+    /**
+     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como arrays
+     *
+     * @param string $key
+     *
+     * @return array
+     */
+    public function loadAssocList($key = '')
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadAssocList($key);
+    }
+
+    /**
+     * Retorna si ha sido posible cargar los datos en el objeto
+     *
+     * @param null $object
+     *
+     * @return bool
+     */
+    public function loadObject(&$object = null)
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadObject($object);
+    }
+
+    /**
+     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como objetos
+     *
+     * @param string $key
+     *
+     * @return array
+     */
+    public function loadObjectList($key = '')
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadObjectList($key);
+    }
+
+    /**
+     * Retorna el resultado de la query
+     *
+     * @return bool|null
+     */
+    public function loadResult()
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadResult();
     }
 
     /**
@@ -124,129 +247,6 @@ class Database extends Core
         }
 
         return $this;
-    }
-
-    /**
-     * Retorna si ha sido posible cargar los datos en el objeto
-     *
-     * @param null $object
-     *
-     * @return bool
-     */
-    public function loadObject(&$object = null)
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadObject($object);
-    }
-
-    /**
-     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como objetos
-     *
-     * @param string $key
-     *
-     * @return array
-     */
-    public function loadObjectList($key = '')
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadObjectList($key);
-    }
-
-    /**
-     * Retorna los datos en un array asociativo como arrays
-     *
-     * @return array
-     */
-    public function loadAssoc()
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadAssoc();
-    }
-
-    /**
-     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como arrays
-     *
-     * @param string $key
-     *
-     * @return array
-     */
-    public function loadAssocList($key = '')
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadAssocList($key);
-    }
-
-    /**
-     * Retorna el resultado de la query
-     *
-     * @return bool|null
-     */
-    public function loadResult()
-    {
-        $this->getInstance()->setQuery($this->getQuery());
-        $this->getInstance()->release();
-
-        return $this->getInstance()->loadResult();
-    }
-
-    /**
-     * Devuelve los parámetros de conexión para la configuración dada
-     *
-     * @param string $conectionName Nombre de la configuración a usar
-     *
-     * @return array Parámetros de la conexión
-     */
-    public static function getConnectionParams($conectionName)
-    {
-        $result = array();
-
-        if (isset(Config::getConfig()->database[$conectionName]) !== false)
-        {
-            $server      = Config::getConfig()->database[$conectionName]['server'];
-            $port        = Config::getConfig()->database[$conectionName]['port'];
-            $username    = Config::getConfig()->database[$conectionName]['username'];
-            $password    = Config::getConfig()->database[$conectionName]['password'];
-            $database    = Config::getConfig()->database[$conectionName]['database'];
-            $charset     = Config::getConfig()->database[$conectionName]['charset'];
-            $driver      = Config::getConfig()->database[$conectionName]['driver'];
-            $driverClass = Config::getConfig()->database[$conectionName]['driver_class'];
-
-            $result = array(
-                'host'     => $server,
-                'port'     => $port,
-                'user'     => $username,
-                'password' => $password,
-                'dbname'   => $database,
-                'charset'  => $charset,
-            );
-
-            if (isset($driver) !== false)
-            {
-                $result['driver'] = $driver;
-            }
-            elseif (isset($driverClass) !== false)
-            {
-                $result['driverClass'] = $driverClass;
-            }
-            else
-            {
-                trigger_error('No se ha definido Driver para la conexión ' . $conectionName, E_USER_ERROR);
-            }
-        }
-        else
-        {
-            trigger_error('No existe la configuración de conexión ' . $conectionName, E_USER_ERROR);
-        }
-
-        return $result;
     }
 
     /**

@@ -13,18 +13,141 @@ use Pulsarcode\Framework\Core\Core;
 class Util extends Core
 {
     /**
-     * Genera una cadena libre de símbolos extraños
+     * Transforma una cadena UTF8 en su correspondencia ASCII
      *
-     * @param string $text Cadena a procesar
-     * @param string $glue Pegamento para unir palabras
+     * @param string $text    Cadena a procesar
+     * @param string $unknown Caracter por defecto si no se puede reemplazar
      *
-     * @return string
+     * @return string Cadena procesada
      */
-    public static function sanitizeString($text = '', $glue = '-')
+    public static function UTF8ToASCII($text, $unknown = '?')
     {
-        $text = self::unaccent($text);
+        static $UTF8_TO_ASCII;
 
-        return self::postProcessText($text, $glue);
+        if (strlen($text) == 0)
+        {
+            return '';
+        }
+
+        preg_match_all('/.{1}|[^\x00]{1,1}$/us', $text, $ar);
+        $chars = $ar[0];
+
+        foreach ($chars as $i => $c)
+        {
+            // ASCII - next please
+            if (ord($c{0}) >= 0 && ord($c{0}) <= 127)
+            {
+                continue;
+            }
+
+            if (ord($c{0}) >= 192 && ord($c{0}) <= 223)
+            {
+                $ord = (ord($c{0}) - 192) * 64 + (ord($c{1}) - 128);
+            }
+
+            if (ord($c{0}) >= 224 && ord($c{0}) <= 239)
+            {
+                $ord = (ord($c{0}) - 224) * 4096 + (ord($c{1}) - 128) * 64 + (ord($c{2}) - 128);
+            }
+
+            if (ord($c{0}) >= 240 && ord($c{0}) <= 247)
+            {
+                $ord = (ord($c{0}) - 240) * 262144 + (ord($c{1}) - 128) * 4096 + (ord($c{2}) - 128) * 64 + (ord(
+                            $c{3}
+                        ) - 128);
+            }
+
+            if (ord($c{0}) >= 248 && ord($c{0}) <= 251)
+            {
+                $ord = (ord($c{0}) - 248) * 16777216 + (ord($c{1}) - 128) * 262144 + (ord($c{2}) - 128) * 4096 + (ord(
+                            $c{3}
+                        ) - 128) * 64 + (ord($c{4}) - 128);
+            }
+
+            if (ord($c{0}) >= 252 && ord($c{0}) <= 253)
+            {
+                $ord = (ord($c{0}) - 252) * 1073741824 + (ord($c{1}) - 128) * 16777216 + (ord(
+                            $c{2}
+                        ) - 128) * 262144 + (ord($c{3}) - 128) * 4096 + (ord($c{4}) - 128) * 64 + (ord($c{5}) - 128);
+            }
+
+            // error
+            if (ord($c{0}) >= 254 && ord($c{0}) <= 255)
+            {
+                $chars{$i} = $unknown;
+                continue;
+            }
+
+            $bank = $ord >> 8;
+
+            if (!array_key_exists($bank, (array) $UTF8_TO_ASCII))
+            {
+                $bankfile = implode(DIRECTORY_SEPARATOR, array(__DIR__, 'data', sprintf("x%02x", $bank) . '.php'));
+
+                if (file_exists($bankfile))
+                {
+                    include $bankfile;
+                }
+                else
+                {
+                    $UTF8_TO_ASCII[$bank] = array();
+                }
+            }
+
+            $newchar = $ord & 255;
+
+            if (array_key_exists($newchar, $UTF8_TO_ASCII[$bank]))
+            {
+                $chars{$i} = $UTF8_TO_ASCII[$bank][$newchar];
+            }
+            else
+            {
+                $chars{$i} = $unknown;
+            }
+        }
+
+        return implode('', $chars);
+    }
+
+    /**
+     * Función para pintar de forma visual un var_dump()
+     *
+     * @param mixed $variable Variable con el contenido a pintar
+     * @param bool  $info     Texto adicional como información del var_dump()
+     */
+    public static function dump(&$variable, $info = false)
+    {
+        $backup       = $variable;
+        $variable     = $seed = md5(uniqid() . rand());
+        $variableName = 'unknown';
+
+        foreach ($GLOBALS as $key => $value)
+        {
+            if ($value === $seed)
+            {
+                $variableName = $key;
+            }
+        }
+
+        $variable = $backup;
+
+        echo '<pre style="
+            font-family : monospace, sans-serif;
+            text-align  : left;
+            margin      : 25px;
+            display     : block;
+            background  : #ffffff;
+            color       : #000000;
+            border      : 1px solid #cdcdcd;
+            padding     : 5px;
+            font-size   : 11px;
+            line-height : 14px;
+          ">';
+
+        $info = ($info) ? $info : '$' . $variableName;
+        echo '<strong style="color:red;">' . $info . ':</strong><br />';
+        self::dumpVal($variable, '$' . $variableName);
+        echo '<strong style="color:red;">End ' . $info . '</strong></pre>';
     }
 
     /**
@@ -78,6 +201,265 @@ class Util extends Core
         }
 
         return true;
+    }
+
+    /**
+     * Valida si una cadena es UTF8 usando el Unicode estándar
+     *
+     * @param string $text Cadena a procesar
+     *
+     * @return boolean
+     */
+    public static function isValidUTF8($text)
+    {
+        /**
+         * Número esperado en caché de octetos después del octeto actual
+         * hasta el comienzo de la siguiente secuencia de caracteres UTF8
+         */
+        $mState = 0;
+
+        /**
+         * Carácter Unicode en caché
+         */
+        $mUcs4 = 0;
+
+        /**
+         * Número esperado en caché de octetos en la secuencia actual
+         */
+        $mBytes = 1;
+
+        $len = strlen($text);
+
+        for ($i = 0; $i < $len; $i++)
+        {
+            $in = ord($text{$i});
+
+            if ($mState == 0)
+            {
+                /**
+                 * Cuando $mState es cero esperamos que sea un caracter US-ASCII o una secuencia multi-octeto
+                 */
+                if (0 == (0x80 & ($in)))
+                {
+                    /**
+                     * US-ASCII, pasa directamente
+                     */
+                    $mBytes = 1;
+                }
+                elseif (0xC0 == (0xE0 & ($in)))
+                {
+                    /**
+                     * En primer octeto de una secuencias de 2 octetos
+                     */
+                    $mUcs4  = ($in);
+                    $mUcs4  = ($mUcs4 & 0x1F) << 6;
+                    $mState = 1;
+                    $mBytes = 2;
+                }
+                elseif (0xE0 == (0xF0 & ($in)))
+                {
+                    /**
+                     * En primer octeto de una secuencias de 3 octetos
+                     */
+                    $mUcs4  = ($in);
+                    $mUcs4  = ($mUcs4 & 0x0F) << 12;
+                    $mState = 2;
+                    $mBytes = 3;
+                }
+                elseif (0xF0 == (0xF8 & ($in)))
+                {
+                    /**
+                     * En primer octeto de una secuencias de 4 octetos
+                     */
+                    $mUcs4  = ($in);
+                    $mUcs4  = ($mUcs4 & 0x07) << 18;
+                    $mState = 3;
+                    $mBytes = 4;
+                }
+                elseif (0xF8 == (0xFC & ($in)))
+                {
+                    /**
+                     * En primer octeto de una secuencias de 5 octetos
+                     *
+                     * Esto es ilegal, porque el punto de código codificado debe:
+                     *
+                     * (A) no ser la forma más corta o más
+                     *
+                     * (B) estar fuera del rango Unicode 0-0x10FFFF
+                     *
+                     * En lugar de tratar de volver a sincronizar, vamos a continuar hasta el final de la secuencia
+                     * y dejar que el código de gestión de errores lo atrape después en una excepción
+                     */
+                    $mUcs4  = ($in);
+                    $mUcs4  = ($mUcs4 & 0x03) << 24;
+                    $mState = 4;
+                    $mBytes = 5;
+                }
+                elseif (0xFC == (0xFE & ($in)))
+                {
+                    /**
+                     * En primer octeto de una secuencias de 6 octetos, leer comentario para los 5 octetos
+                     */
+                    $mUcs4  = ($in);
+                    $mUcs4  = ($mUcs4 & 1) << 30;
+                    $mState = 5;
+                    $mBytes = 6;
+                }
+                else
+                {
+                    /**
+                     * El octeto actual no está ni en el rango de US-ASCII
+                     * ni es un primer octeto legal de una secuencia multi-octeto
+                     */
+                    return false;
+                }
+            }
+            else
+            {
+                /**
+                 * Cuando $mState es distinto de cero, se espera una continuación de la secuencia multi-octeto
+                 */
+                if (0x80 == (0xC0 & ($in)))
+                {
+                    /**
+                     * Continuación legal
+                     */
+                    $shift = ($mState - 1) * 6;
+                    $tmp   = $in;
+                    $tmp   = ($tmp & 0x0000003F) << $shift;
+                    $mUcs4 |= $tmp;
+
+                    /**
+                     * Fin de la secuencia multi-octeto, $mUcs4 ahora contiene el punto final de salida Unicode
+                     */
+                    if (0 == --$mState)
+                    {
+                        /**
+                         * Compruebe si hay secuencias y puntos de código ilegales
+                         * Desde Unicode 3.1, la forma no menor es ilegal
+                         */
+                        if (((2 == $mBytes) && ($mUcs4 < 0x0080)) ||
+                            ((3 == $mBytes) && ($mUcs4 < 0x0800)) ||
+                            ((4 == $mBytes) && ($mUcs4 < 0x10000)) ||
+                            (4 < $mBytes) ||
+                            /**
+                             * Desde Unicode 3.2, los caracteres suplentes son ilegales
+                             */
+                            (($mUcs4 & 0xFFFFF800) == 0xD800) ||
+                            /**
+                             * Los puntos de código fuera del rango Unicode son ilegales
+                             */
+                            ($mUcs4 > 0x10FFFF)
+                        )
+                        {
+                            return false;
+                        }
+
+                        /**
+                         * Inicializar caché UTF8
+                         */
+                        $mState = 0;
+                        $mUcs4  = 0;
+                        $mBytes = 1;
+                    }
+                }
+                else
+                {
+                    /**
+                     * Secuencia multi-octeto incompleta
+                     */
+                    // ((0xC0 & (*in) != 0x80) && (mState != 0))
+
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Genera una cadena libre de símbolos extraños
+     *
+     * @param string $text Cadena a procesar
+     * @param string $glue Pegamento para unir palabras
+     *
+     * @return string
+     */
+    public static function sanitizeString($text = '', $glue = '-')
+    {
+        $text = self::unaccent($text);
+
+        return self::postProcessText($text, $glue);
+    }
+
+    /**
+     * Descodifica los datos de un token
+     *
+     * @param string $token Token con datos a decodificar
+     *
+     * @return string
+     */
+    public static function tokenDecode($token)
+    {
+        $configToken = Config::getConfig()->application['token'];
+        list($email, $data) = explode(':', base64_decode(str_replace($configToken, '', base64_decode($token))));
+
+        return array(
+            'token' => $token,
+            'email' => $email,
+            'data'  => $data,
+        );
+    }
+
+    /**
+     * Codifica los datos con un token
+     *
+     * @param string $email Email para incluir en la codificación
+     * @param string $data  Datos a codificar
+     *
+     * @return array
+     */
+    public static function tokenEncode($email, $data)
+    {
+        $token = base64_encode(Config::getConfig()->application['token'] . base64_encode($email . ':' . $data));
+
+        return array(
+            'token' => $token,
+            'email' => $email,
+            'data'  => $data,
+        );
+    }
+
+    /**
+     * Genera un hash basado en el token y el data codificado
+     *
+     * @param string $token Token a usar para la codificación del hash
+     * @param string $data  Datos a usar para la codificación del hash
+     *
+     * @return string
+     */
+    public static function tokenHash($token, $data)
+    {
+        return md5($token . Config::getConfig()->environment . $data . Config::getConfig()->application['token']);
+    }
+
+    /**
+     * Transforma caracteres UTF8 usando tablas de transliteración
+     *
+     * @param string $text Cadena a procesar
+     * @param string $glue Pegamento para unir palabras
+     *
+     * @return string $text
+     */
+    public static function transliterate($text, $glue = '-')
+    {
+        if (preg_match('/[\x80-\xff]/', $text) && self::isValidUTF8($text))
+        {
+            $text = self::UTF8ToASCII($text);
+        }
+
+        return self::postProcessText($text, $glue);
     }
 
     /**
@@ -341,439 +723,6 @@ class Util extends Core
         return $text;
     }
 
-    /**
-     * Transforma una cadena UTF8 en su correspondencia ASCII
-     *
-     * @param string $text    Cadena a procesar
-     * @param string $unknown Caracter por defecto si no se puede reemplazar
-     *
-     * @return string Cadena procesada
-     */
-    public static function UTF8ToASCII($text, $unknown = '?')
-    {
-        static $UTF8_TO_ASCII;
-
-        if (strlen($text) == 0)
-        {
-            return '';
-        }
-
-        preg_match_all('/.{1}|[^\x00]{1,1}$/us', $text, $ar);
-        $chars = $ar[0];
-
-        foreach ($chars as $i => $c)
-        {
-            // ASCII - next please
-            if (ord($c{0}) >= 0 && ord($c{0}) <= 127)
-            {
-                continue;
-            }
-
-            if (ord($c{0}) >= 192 && ord($c{0}) <= 223)
-            {
-                $ord = (ord($c{0}) - 192) * 64 + (ord($c{1}) - 128);
-            }
-
-            if (ord($c{0}) >= 224 && ord($c{0}) <= 239)
-            {
-                $ord = (ord($c{0}) - 224) * 4096 + (ord($c{1}) - 128) * 64 + (ord($c{2}) - 128);
-            }
-
-            if (ord($c{0}) >= 240 && ord($c{0}) <= 247)
-            {
-                $ord = (ord($c{0}) - 240) * 262144 + (ord($c{1}) - 128) * 4096 + (ord($c{2}) - 128) * 64 + (ord(
-                            $c{3}
-                        ) - 128);
-            }
-
-            if (ord($c{0}) >= 248 && ord($c{0}) <= 251)
-            {
-                $ord = (ord($c{0}) - 248) * 16777216 + (ord($c{1}) - 128) * 262144 + (ord($c{2}) - 128) * 4096 + (ord(
-                            $c{3}
-                        ) - 128) * 64 + (ord($c{4}) - 128);
-            }
-
-            if (ord($c{0}) >= 252 && ord($c{0}) <= 253)
-            {
-                $ord = (ord($c{0}) - 252) * 1073741824 + (ord($c{1}) - 128) * 16777216 + (ord(
-                            $c{2}
-                        ) - 128) * 262144 + (ord($c{3}) - 128) * 4096 + (ord($c{4}) - 128) * 64 + (ord($c{5}) - 128);
-            }
-
-            // error
-            if (ord($c{0}) >= 254 && ord($c{0}) <= 255)
-            {
-                $chars{$i} = $unknown;
-                continue;
-            }
-
-            $bank = $ord >> 8;
-
-            if (!array_key_exists($bank, (array) $UTF8_TO_ASCII))
-            {
-                $bankfile = implode(DIRECTORY_SEPARATOR, array(__DIR__, 'data', sprintf("x%02x", $bank) . '.php'));
-
-                if (file_exists($bankfile))
-                {
-                    include $bankfile;
-                }
-                else
-                {
-                    $UTF8_TO_ASCII[$bank] = array();
-                }
-            }
-
-            $newchar = $ord & 255;
-
-            if (array_key_exists($newchar, $UTF8_TO_ASCII[$bank]))
-            {
-                $chars{$i} = $UTF8_TO_ASCII[$bank][$newchar];
-            }
-            else
-            {
-                $chars{$i} = $unknown;
-            }
-        }
-
-        return implode('', $chars);
-    }
-
-    /**
-     * Transforma caracteres UTF8 usando tablas de transliteración
-     *
-     * @param string $text Cadena a procesar
-     * @param string $glue Pegamento para unir palabras
-     *
-     * @return string $text
-     */
-    public static function transliterate($text, $glue = '-')
-    {
-        if (preg_match('/[\x80-\xff]/', $text) && self::isValidUTF8($text))
-        {
-            $text = self::UTF8ToASCII($text);
-        }
-
-        return self::postProcessText($text, $glue);
-    }
-
-    /**
-     * Valida si una cadena es UTF8 usando el Unicode estándar
-     *
-     * @param string $text Cadena a procesar
-     *
-     * @return boolean
-     */
-    public static function isValidUTF8($text)
-    {
-        /**
-         * Número esperado en caché de octetos después del octeto actual
-         * hasta el comienzo de la siguiente secuencia de caracteres UTF8
-         */
-        $mState = 0;
-
-        /**
-         * Carácter Unicode en caché
-         */
-        $mUcs4 = 0;
-
-        /**
-         * Número esperado en caché de octetos en la secuencia actual
-         */
-        $mBytes = 1;
-
-        $len = strlen($text);
-
-        for ($i = 0; $i < $len; $i++)
-        {
-            $in = ord($text{$i});
-
-            if ($mState == 0)
-            {
-                /**
-                 * Cuando $mState es cero esperamos que sea un caracter US-ASCII o una secuencia multi-octeto
-                 */
-                if (0 == (0x80 & ($in)))
-                {
-                    /**
-                     * US-ASCII, pasa directamente
-                     */
-                    $mBytes = 1;
-                }
-                elseif (0xC0 == (0xE0 & ($in)))
-                {
-                    /**
-                     * En primer octeto de una secuencias de 2 octetos
-                     */
-                    $mUcs4  = ($in);
-                    $mUcs4  = ($mUcs4 & 0x1F) << 6;
-                    $mState = 1;
-                    $mBytes = 2;
-                }
-                elseif (0xE0 == (0xF0 & ($in)))
-                {
-                    /**
-                     * En primer octeto de una secuencias de 3 octetos
-                     */
-                    $mUcs4  = ($in);
-                    $mUcs4  = ($mUcs4 & 0x0F) << 12;
-                    $mState = 2;
-                    $mBytes = 3;
-                }
-                elseif (0xF0 == (0xF8 & ($in)))
-                {
-                    /**
-                     * En primer octeto de una secuencias de 4 octetos
-                     */
-                    $mUcs4  = ($in);
-                    $mUcs4  = ($mUcs4 & 0x07) << 18;
-                    $mState = 3;
-                    $mBytes = 4;
-                }
-                elseif (0xF8 == (0xFC & ($in)))
-                {
-                    /**
-                     * En primer octeto de una secuencias de 5 octetos
-                     *
-                     * Esto es ilegal, porque el punto de código codificado debe:
-                     *
-                     * (A) no ser la forma más corta o más
-                     *
-                     * (B) estar fuera del rango Unicode 0-0x10FFFF
-                     *
-                     * En lugar de tratar de volver a sincronizar, vamos a continuar hasta el final de la secuencia
-                     * y dejar que el código de gestión de errores lo atrape después en una excepción
-                     */
-                    $mUcs4  = ($in);
-                    $mUcs4  = ($mUcs4 & 0x03) << 24;
-                    $mState = 4;
-                    $mBytes = 5;
-                }
-                elseif (0xFC == (0xFE & ($in)))
-                {
-                    /**
-                     * En primer octeto de una secuencias de 6 octetos, leer comentario para los 5 octetos
-                     */
-                    $mUcs4  = ($in);
-                    $mUcs4  = ($mUcs4 & 1) << 30;
-                    $mState = 5;
-                    $mBytes = 6;
-                }
-                else
-                {
-                    /**
-                     * El octeto actual no está ni en el rango de US-ASCII
-                     * ni es un primer octeto legal de una secuencia multi-octeto
-                     */
-                    return false;
-                }
-            }
-            else
-            {
-                /**
-                 * Cuando $mState es distinto de cero, se espera una continuación de la secuencia multi-octeto
-                 */
-                if (0x80 == (0xC0 & ($in)))
-                {
-                    /**
-                     * Continuación legal
-                     */
-                    $shift = ($mState - 1) * 6;
-                    $tmp   = $in;
-                    $tmp   = ($tmp & 0x0000003F) << $shift;
-                    $mUcs4 |= $tmp;
-
-                    /**
-                     * Fin de la secuencia multi-octeto, $mUcs4 ahora contiene el punto final de salida Unicode
-                     */
-                    if (0 == --$mState)
-                    {
-                        /**
-                         * Compruebe si hay secuencias y puntos de código ilegales
-                         * Desde Unicode 3.1, la forma no menor es ilegal
-                         */
-                        if (((2 == $mBytes) && ($mUcs4 < 0x0080)) ||
-                            ((3 == $mBytes) && ($mUcs4 < 0x0800)) ||
-                            ((4 == $mBytes) && ($mUcs4 < 0x10000)) ||
-                            (4 < $mBytes) ||
-                            /**
-                             * Desde Unicode 3.2, los caracteres suplentes son ilegales
-                             */
-                            (($mUcs4 & 0xFFFFF800) == 0xD800) ||
-                            /**
-                             * Los puntos de código fuera del rango Unicode son ilegales
-                             */
-                            ($mUcs4 > 0x10FFFF)
-                        )
-                        {
-                            return false;
-                        }
-
-                        /**
-                         * Inicializar caché UTF8
-                         */
-                        $mState = 0;
-                        $mUcs4  = 0;
-                        $mBytes = 1;
-                    }
-                }
-                else
-                {
-                    /**
-                     * Secuencia multi-octeto incompleta
-                     */
-                    // ((0xC0 & (*in) != 0x80) && (mState != 0))
-
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Limpia la cadena pasada y aplica el pegamento para unirla
-     *
-     * @param string $text Cadena a procesar
-     * @param string $glue Pegamento para unir palabras
-     *
-     * @return string
-     */
-    private static function postProcessText($text, $glue)
-    {
-        if (function_exists('mb_strtolower'))
-        {
-            $text = mb_strtolower($text);
-        }
-        else
-        {
-            $text = strtolower($text);
-        }
-
-        /**
-         * Deben suprimirse los apóstrofes antes de reemplazar lo que no son letras, números o guiones bajos
-         */
-        $text = preg_replace("/'/", '', $text);
-
-        /**
-         * Reemplazo de todos los caracteres excepto letras, números o guiones bajos
-         */
-        $text = preg_replace('/\W/', ' ', $text);
-
-        /**
-         * Reemplazo de espacios con $glue
-         */
-        $text = strtolower(
-            preg_replace(
-                '/[^A-Za-z0-9\/]+/',
-                $glue,
-                preg_replace(
-                    '/([a-z\d])([A-Z])/',
-                    '\1_\2',
-                    preg_replace(
-                        '/([A-Z]+)([A-Z][a-z])/',
-                        '\1_\2',
-                        preg_replace('/::/', '/', $text)
-                    )
-                )
-            )
-        );
-
-        return trim($text, $glue);
-    }
-
-    /**
-     * Codifica los datos con un token
-     *
-     * @param string $email Email para incluir en la codificación
-     * @param string $data  Datos a codificar
-     *
-     * @return array
-     */
-    public static function tokenEncode($email, $data)
-    {
-        $token = base64_encode(Config::getConfig()->application['token'] . base64_encode($email . ':' . $data));
-
-        return array(
-            'token' => $token,
-            'email' => $email,
-            'data'  => $data,
-        );
-    }
-
-    /**
-     * Descodifica los datos de un token
-     *
-     * @param string $token Token con datos a decodificar
-     *
-     * @return string
-     */
-    public static function tokenDecode($token)
-    {
-        $configToken = Config::getConfig()->application['token'];
-        list($email, $data) = explode(':', base64_decode(str_replace($configToken, '', base64_decode($token))));
-
-        return array(
-            'token' => $token,
-            'email' => $email,
-            'data'  => $data,
-        );
-    }
-
-    /**
-     * Genera un hash basado en el token y el data codificado
-     *
-     * @param string $token Token a usar para la codificación del hash
-     * @param string $data  Datos a usar para la codificación del hash
-     *
-     * @return string
-     */
-    public static function tokenHash($token, $data)
-    {
-        return md5($token . Config::getConfig()->environment . $data . Config::getConfig()->application['token']);
-    }
-
-    /**
-     * Función para pintar de forma visual un var_dump()
-     *
-     * @param mixed $variable Variable con el contenido a pintar
-     * @param bool  $info     Texto adicional como información del var_dump()
-     */
-    public static function dump(&$variable, $info = false)
-    {
-        $backup       = $variable;
-        $variable     = $seed = md5(uniqid() . rand());
-        $variableName = 'unknown';
-
-        foreach ($GLOBALS as $key => $value)
-        {
-            if ($value === $seed)
-            {
-                $variableName = $key;
-            }
-        }
-
-        $variable = $backup;
-
-        echo '<pre style="
-            font-family : monospace, sans-serif;
-            text-align  : left;
-            margin      : 25px;
-            display     : block;
-            background  : #ffffff;
-            color       : #000000;
-            border      : 1px solid #cdcdcd;
-            padding     : 5px;
-            font-size   : 11px;
-            line-height : 14px;
-          ">';
-
-        $info = ($info) ? $info : '$' . $variableName;
-        echo '<strong style="color:red;">' . $info . ':</strong><br />';
-        self::dumpVal($variable, '$' . $variableName);
-        echo '<strong style="color:red;">End ' . $info . '</strong></pre>';
-    }
-
     private static function dumpVal(&$dump, $info = '', $tab = '', $reference = '')
     {
         $indent       = 4;
@@ -879,5 +828,56 @@ class Util extends Core
 
             $dump = $dump[$variableKey];
         }
+    }
+
+    /**
+     * Limpia la cadena pasada y aplica el pegamento para unirla
+     *
+     * @param string $text Cadena a procesar
+     * @param string $glue Pegamento para unir palabras
+     *
+     * @return string
+     */
+    private static function postProcessText($text, $glue)
+    {
+        if (function_exists('mb_strtolower'))
+        {
+            $text = mb_strtolower($text);
+        }
+        else
+        {
+            $text = strtolower($text);
+        }
+
+        /**
+         * Deben suprimirse los apóstrofes antes de reemplazar lo que no son letras, números o guiones bajos
+         */
+        $text = preg_replace("/'/", '', $text);
+
+        /**
+         * Reemplazo de todos los caracteres excepto letras, números o guiones bajos
+         */
+        $text = preg_replace('/\W/', ' ', $text);
+
+        /**
+         * Reemplazo de espacios con $glue
+         */
+        $text = strtolower(
+            preg_replace(
+                '/[^A-Za-z0-9\/]+/',
+                $glue,
+                preg_replace(
+                    '/([a-z\d])([A-Z])/',
+                    '\1_\2',
+                    preg_replace(
+                        '/([A-Z]+)([A-Z][a-z])/',
+                        '\1_\2',
+                        preg_replace('/::/', '/', $text)
+                    )
+                )
+            )
+        );
+
+        return trim($text, $glue);
     }
 }

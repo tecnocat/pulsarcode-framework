@@ -300,17 +300,6 @@ class Config extends Core
     }
 
     /**
-     * Establece la configuración dada
-     *
-     * @param string $configName  Nombre de la configuración
-     * @param mixed  $configValue Valor de la configuración
-     */
-    public function __set($configName, $configValue)
-    {
-        self::$config[$configName] = $configValue;
-    }
-
-    /**
      * Devuelve la configuración si existe o null
      *
      * @param string $configName Nombre de la configuración
@@ -320,6 +309,17 @@ class Config extends Core
     public function __get($configName)
     {
         return (isset(self::$config[$configName])) ? self::$config[$configName] : null;
+    }
+
+    /**
+     * Establece la configuración dada
+     *
+     * @param string $configName  Nombre de la configuración
+     * @param mixed  $configValue Valor de la configuración
+     */
+    public function __set($configName, $configValue)
+    {
+        self::$config[$configName] = $configValue;
     }
 
     /**
