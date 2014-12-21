@@ -89,13 +89,6 @@ class Cache extends Core
     private $currentProvider;
 
     /**
-     * Entornos permitidos para mostrar los objetos cacheados
-     *
-     * @var array $allowedEnvironments
-     */
-    private static $allowedEnvironments = array('loc', 'des');
-
-    /**
      * @var bool Control para los capturadores de cacheos
      */
     private static $dispatched;
@@ -512,7 +505,7 @@ class Cache extends Core
 
         if (Config::getConfig()->cache['active'] && Config::getConfig()->cache['show'])
         {
-            if (in_array(Config::getConfig()->environment, self::$allowedEnvironments))
+            if (in_array(Config::getConfig()->environment, Config::$debugEnvironments))
             {
                 foreach (self::$providerObjects as $providerName => $providerObjects)
                 {

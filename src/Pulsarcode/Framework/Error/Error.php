@@ -78,11 +78,6 @@ class Error extends Core
     private static $errors = array();
 
     /**
-     * @var array Entornos permitidos para mostrar / guardar los errores
-     */
-    private static $allowedEnvironments = array('loc', 'des');
-
-    /**
      * @var bool Control para los capturadores de errores
      */
     private static $dispatched;
@@ -282,9 +277,9 @@ class Error extends Core
         );
 
         /**
-         * Los errores 500 se envian siempre por mail en pre y pro, en loc y des sólo si lo tenemos activado
+         * Los errores 500 se envian siempre por mail en pre y pro, en loc y dev sólo si lo tenemos activado
          */
-        if (Config::getConfig()->error_reporting['send'] || !in_array($environment, Error::$allowedEnvironments))
+        if (Config::getConfig()->error_reporting['send'] || !in_array($environment, Config::$debugEnvironments))
         {
             /**
              * Enviamos los emilios en background like a boss
@@ -458,14 +453,14 @@ class Error extends Core
         {
             $response = array('success' => false, 'message' => 'Internal Server Error');
 
-            if (in_array($environment, Error::$allowedEnvironments))
+            if (in_array($environment, Config::$debugEnvironments))
             {
                 $response['error'] = $errorData;
             }
 
             echo json_encode($response);
         }
-        elseif (in_array($environment, Error::$allowedEnvironments))
+        elseif (in_array($environment, Config::$debugEnvironments))
         {
             ob_start();
 
@@ -512,7 +507,7 @@ class Error extends Core
          */
         if (Router::getRequest()->isXmlHttpRequest() === false && Config::getConfig()->error_reporting['show'])
         {
-            if (!empty(self::$errors) && in_array(Config::getConfig()->environment, self::$allowedEnvironments))
+            if (!empty(self::$errors) && in_array(Config::getConfig()->environment, Config::$debugEnvironments))
             {
                 if ('json' !== Router::getRequest()->getRequestFormat())
                 {

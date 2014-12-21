@@ -71,6 +71,13 @@ class Config extends Core
     const PARAMETERS_FILE = 'parameters.yml';
 
     /**
+     * Entornos permitidos para mostrar información de debug
+     *
+     * @var array $debugEnvironments
+     */
+    public static $debugEnvironments = array('loc', 'dev');
+
+    /**
      * Toda la configuración de la aplicación y archivos adicionales
      *
      * @var null $config

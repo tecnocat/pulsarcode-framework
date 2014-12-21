@@ -211,7 +211,7 @@ class Mail extends Core
         /**
          * En desarrollo mostramos información de la TPL que usa el email
          */
-        if (in_array($envinronment, array('loc', 'des')))
+        if (in_array($envinronment, Config::$debugEnvironments))
         {
             $prefix = 'Desarrollo (' . $envinronment . ')';
 

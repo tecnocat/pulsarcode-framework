@@ -166,7 +166,7 @@ class MSSQLWrapper extends Core
             trigger_error('Imposible seleccionar la base de datos "' . $dbname . '"', E_USER_ERROR);
         }
 
-        $this->debug = (in_array(Config::getConfig()->environment, array('loc', 'des')));
+        $this->debug = (in_array(Config::getConfig()->environment, Config::$debugEnvironments));
 
         if ($this->debug)
         {
