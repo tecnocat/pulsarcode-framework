@@ -4,6 +4,7 @@ namespace Pulsarcode\Framework\Core;
 
 use Pulsarcode\Framework\Cache\Cache;
 use Pulsarcode\Framework\Database\Database;
+use Pulsarcode\Framework\Database\MSSQLWrapper;
 use Pulsarcode\Framework\Error\Error;
 
 /**
@@ -14,9 +15,19 @@ use Pulsarcode\Framework\Error\Error;
 class Core
 {
     /**
-     * @var float Instancia en el tiempo en elq ue se conectó con la base de datos
+     * @var bool Control para los capturadores de peticiones
      */
-    private static $startConnection;
+    private static $dispatched;
+
+    /**
+     * @var float Instancia en el tiempo en el que se terminó de conectar con la base de datos
+     */
+    private static $finishConnection = 0.0;
+
+    /**
+     * @var float Instancia en el tiempo en el que se conectó con la base de datos
+     */
+    private static $startConnection = 0.0;
 
     /**
      * @var float Instancia en el tiempo en el que se inició la petición
@@ -45,20 +56,33 @@ class Core
     }
 
     /**
+     * Setea el momento del tiempo en el que se terminó de conectar con la base de datos
+     */
+    protected static function finishConnection()
+    {
+        self::$finishConnection = (self::$finishConnection) ?: microtime(true);
+    }
+
+    /**
      * Guarda en el log el tiempo transcurrido durante la petición
      */
     protected static function finishRequest()
     {
         $microtime      = microtime(true);
         $requestTime    = $microtime - self::$startRequest;
-        $connectionTime = (self::$startConnection) ? $microtime - self::$startConnection : 0;
+        $connectionTime = (self::$startConnection) ? self::$finishConnection - self::$startConnection : 0.0;
+        $queryTime      = (self::$startConnection) ? MSSQLWrapper::getQueryTimeTotal() : 0.0;
+        $databaseTime   = (self::$startConnection) ? $connectionTime + $queryTime : 0.0;
+        $spaghettiTime  = $requestTime - $databaseTime;
 
         trigger_error(
             sprintf(
-                'Duración de la petición: %.3fms (Web: %.3fms | Database: %.3fms)',
+                'Duración de la petición: %.3fms (Web: %.3fms | Database: %.3fms [Conexión: %.3fms | Queries: %.3fms])',
                 $requestTime,
-                $requestTime - $connectionTime,
-                $connectionTime
+                $spaghettiTime,
+                $databaseTime,
+                $connectionTime,
+                $queryTime
             ),
             E_USER_NOTICE
         );
@@ -112,5 +136,16 @@ class Core
     protected static function startRequest()
     {
         self::$startRequest = (self::$startRequest) ?: microtime(true);
+
+        if (false === isset(self::$dispatched))
+        {
+            register_shutdown_function(
+                function ()
+                {
+                    Core::finishRequest();
+                }
+            );
+            self::$dispatched = true;
+        }
     }
 }
