@@ -240,15 +240,19 @@ class View extends Core
                 return ob_get_clean();
 
             case 'twig':
-                return $this->twig->render(
-                    $this->template,
-                    array_merge(
-                        $this->variables,
+                $variables = $this->variables;
+
+                if (false !== isset($this->form))
+                {
+                    $variables = array_merge(
+                        $variables,
                         array(
-                            'form_' . $this->getForm()->getName() => $this->getForm()->createView(),
+                            'form_' . $this->form->getName() => $this->form->createView(),
                         )
-                    )
-                );
+                    );
+                }
+
+                return $this->twig->render($this->template, $variables);
 
             default:
                 trigger_error('Motor no soportado (' . $engine . ' -> ' . $this->template . ')', E_USER_ERROR);
