@@ -362,7 +362,7 @@ class MSSQLWrapper extends Core
             self::$queries[] = array('time' => $queryTime, 'sql' => $this->sql);
         }
 
-        return sprintf('(Query: %.4fms Total: %.4fms)', $queryTime, $this->queryTimeTotal);
+        return sprintf('(Query: %.3fms Total: %.3fms)', $queryTime, $this->queryTimeTotal);
     }
 
     /**
