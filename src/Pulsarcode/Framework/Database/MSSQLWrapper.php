@@ -95,7 +95,7 @@ class MSSQLWrapper extends Core
     /**
      * @var float Tiempo que se ha invertido en todas las queries
      */
-    private $queryTimeTotal = 0.0;
+    private static $queryTimeTotal = 0.0;
 
     /**
      * Constructor
@@ -175,6 +175,8 @@ class MSSQLWrapper extends Core
             trigger_error('Imposible seleccionar la base de datos "' . $dbname . '"', E_USER_ERROR);
         }
 
+        parent::finishConnection();
+
         $this->debug = (in_array(Config::getConfig()->environment, Config::$debugEnvironments));
 
         if ($this->debug)
@@ -248,6 +250,16 @@ class MSSQLWrapper extends Core
     }
 
     /**
+     * Obtiene el tiempo total invertido en las queries
+     *
+     * @return float
+     */
+    public static function getQueryTimeTotal()
+    {
+        return self::$queryTimeTotal;
+    }
+
+    /**
      * Setea y ejecuta una query
      *
      * @param string $query
@@ -268,11 +280,11 @@ class MSSQLWrapper extends Core
      */
     public function query()
     {
-        $this->queryTimeStart();
+        $this->setQueryTimeStart();
         $this->lastErrorCode    = 0;
         $this->lastErrorMessage = '';
         $this->cursor           = mssql_query($this->sql, $this->link);
-        $this->queryTimeFinish();
+        $this->setQueryTimeFinish();
 
         if ($this->cursor === false)
         {
@@ -307,7 +319,7 @@ class MSSQLWrapper extends Core
         $message = sprintf(
             '[%s] %s %s',
             date('Y-m-d H:i:s'),
-            $this->queryTimeGet($isQuery),
+            $this->getQueryTimestamp($isQuery),
             preg_replace('/\s+/', ' ', $message)
         );
 
@@ -341,15 +353,19 @@ class MSSQLWrapper extends Core
         }
     }
 
-    private function queryTimeFinish()
+    /**
+     * Establece la marca de tiempo en el que finalizó la query
+     */
+    private function setQueryTimeFinish()
     {
         $this->queryTimeFinish = microtime(true);
+        self::$queryTimeTotal += ($this->queryTimeFinish - $this->queryTimeStart);
     }
 
     /**
-     * Inicializa un contador para mediciones de tiempos
+     * Establece la marca de tiempo en el que empezó la query
      */
-    private function queryTimeStart()
+    private function setQueryTimeStart()
     {
         $this->queryTimeStart = microtime(true);
     }
@@ -361,17 +377,16 @@ class MSSQLWrapper extends Core
      *
      * @return string Marca de tiempo en milisegundos
      */
-    private function queryTimeGet($isQuery = false)
+    private function getQueryTimestamp($isQuery = false)
     {
         $queryTime = ($this->queryTimeFinish - $this->queryTimeStart);
-        $this->queryTimeTotal += $queryTime;
 
         if (false !== $isQuery)
         {
             self::$queries[] = array('time' => $queryTime, 'sql' => $this->sql);
         }
 
-        return sprintf('(Query: %.3fms Total: %.3fms)', $queryTime, $this->queryTimeTotal);
+        return sprintf('(Query: %.3fms Total: %.3fms)', $queryTime, self::$queryTimeTotal);
     }
 
     /**

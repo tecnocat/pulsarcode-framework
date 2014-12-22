@@ -299,8 +299,6 @@ class Router extends Core
             );
             Error::setError('405', $errorData);
         }
-
-        self::finishRequest();
     }
 
     /**
