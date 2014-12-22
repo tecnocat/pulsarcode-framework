@@ -55,7 +55,7 @@ class Core
 
         trigger_error(
             sprintf(
-                'Duración de la petición: %.4fms (Web: %.4fms | Database: %.4fms)',
+                'Duración de la petición: %.3fms (Web: %.3fms | Database: %.3fms)',
                 $requestTime,
                 $requestTime - $connectionTime,
                 $connectionTime
