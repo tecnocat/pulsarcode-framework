@@ -32,7 +32,7 @@ class Core
     /**
      * @var float Instancia en el tiempo en el que se inició la petición
      */
-    private static $startRequest;
+    private static $startRequest = 0.0;
 
     /**
      * Constructor
@@ -56,17 +56,9 @@ class Core
     }
 
     /**
-     * Setea el momento del tiempo en el que se terminó de conectar con la base de datos
-     */
-    protected static function finishConnection()
-    {
-        self::$finishConnection = (self::$finishConnection) ?: microtime(true);
-    }
-
-    /**
      * Guarda en el log el tiempo transcurrido durante la petición
      */
-    protected static function finishRequest()
+    public static function finishRequest()
     {
         $microtime      = microtime(true);
         $requestTime    = $microtime - self::$startRequest;
@@ -75,17 +67,34 @@ class Core
         $databaseTime   = (self::$startConnection) ? $connectionTime + $queryTime : 0.0;
         $spaghettiTime  = $requestTime - $databaseTime;
 
-        trigger_error(
-            sprintf(
-                'Duración de la petición: %.3fms (Web: %.3fms | Database: %.3fms [Conexión: %.3fms | Queries: %.3fms])',
-                $requestTime,
-                $spaghettiTime,
-                $databaseTime,
-                $connectionTime,
-                $queryTime
-            ),
-            E_USER_NOTICE
+        $errorMessage = sprintf(
+            'Duración de la petición: %.3fms (Web: %.3fms | Database: %.3fms [Conexión: %.3fms | Queries: %.3fms])',
+            $requestTime,
+            $spaghettiTime,
+            $databaseTime,
+            $connectionTime,
+            $queryTime
         );
+        $errorData    = array(
+            'errorLevel'   => 'PERFORMANCE_INFO',
+            'errorMessage' => $errorMessage,
+            'errorFile'    => __FILE__,
+            'errorLine'    => __LINE__,
+        );
+        Error::setError('PHP', $errorData);
+
+        /**
+         * TODO: Hasta hacer una tabla o similar para mostrar la información de arriba usar el parseo de errores
+         */
+        Error::parseErrors();
+    }
+
+    /**
+     * Setea el momento del tiempo en el que se terminó de conectar con la base de datos
+     */
+    protected static function finishConnection()
+    {
+        self::$finishConnection = (self::$finishConnection) ?: microtime(true);
     }
 
     /**
