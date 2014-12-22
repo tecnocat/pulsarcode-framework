@@ -4,6 +4,7 @@ namespace Pulsarcode\Framework\Database;
 
 use Pulsarcode\Framework\Config\Config;
 use Pulsarcode\Framework\Core\Core;
+use Pulsarcode\Framework\Mail\Mail;
 use Pulsarcode\Framework\Router\Router;
 
 /**
@@ -321,15 +322,23 @@ class MSSQLWrapper extends Core
 
         $file = sprintf('%s/database-%s-%s.log', Config::getConfig()->paths['logs'], date('Y-m-d'), $host);
 
-        /**
-         * Guardamos el log en background para no penalizar rendimiento
-         */
-        register_shutdown_function(
-            function () use ($file, $message)
-            {
-                file_put_contents($file, $message . PHP_EOL, FILE_APPEND);
-            }
-        );
+        if ('cli' === php_sapi_name())
+        {
+            echo $message . PHP_EOL;
+        }
+
+        if (false !== Config::getConfig()->queries['write'])
+        {
+            /**
+             * Guardamos el log en background para no penalizar rendimiento
+             */
+            register_shutdown_function(
+                function () use ($file, $message)
+                {
+                    file_put_contents($file, $message . PHP_EOL, FILE_APPEND);
+                }
+            );
+        }
     }
 
     private function queryTimeFinish()
@@ -432,14 +441,80 @@ class MSSQLWrapper extends Core
                 if (false === empty(self::$queries))
                 {
                     $queries = self::$queries;
-                    usort($queries,
+                    usort(
+                        $queries,
                         function ($a, $b)
                         {
                             return $a['time'] < $b['time'];
                         }
                     );
+
                     include Config::getConfig()->paths['views']['web'] . '/query-table.html.php';
                 }
+            }
+        }
+
+        if (false !== Config::getConfig()->queries['send'])
+        {
+            $slowQueries = array();
+
+            foreach (self::$queries as $query)
+            {
+                if ($query['time'] > Config::getConfig()->queries['slow'])
+                {
+                    $slowQueries[] = sprintf('%.3fms > %s', $query['time'], preg_replace('/\s+/', ' ', $query['sql']));
+                }
+            }
+
+            /**
+             * TODO: Dupicamos código de Error:mail por que no podemos meter en background otro callback en background
+             */
+            if (false === empty($slowQueries))
+            {
+                $environment = Config::getConfig()->environment;
+
+                if (php_sapi_name() !== 'cli')
+                {
+                    $ip   = Router::getRequest()->server->get('SERVER_ADDR');
+                    $host = Router::getRequest()->getHttpHost();
+                    $uri  = Router::getRequest()->getRequestUri();
+                }
+                elseif (Router::getRequest()->server->has('SSH_CONNECTION'))
+                {
+                    $ip   = Router::getRequest()->server->get('SSH_CONNECTION');
+                    $host = Router::getRequest()->server->get('HOSTNAME');
+                    $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
+                }
+                else
+                {
+                    $ip   = Router::getRequest()->server->get('HOME');
+                    $host = Router::getRequest()->server->get('USER');
+                    $uri  = Router::getRequest()->server->get('SCRIPT_NAME');
+                }
+
+                $info = print_r(
+                    array(
+                        '$_GET'     => Router::getRequest()->query->all(),
+                        '$_POST'    => Router::getRequest()->request->all(),
+                        '$_FILES'   => Router::getRequest()->files->all(),
+                        '$_COOKIE'  => Router::getRequest()->cookies->all(),
+                        '$_SERVER'  => Router::getRequest()->server->all(),
+                        '$_SESSION' => Router::getRequest()->getSession()->all(),
+                    ),
+                    true
+                );
+
+                $subject = sprintf(
+                    'Queries demasiado lentas (por encima de %s segundos)',
+                    Config::getConfig()->queries['slow']
+                );
+                $body    = sprintf('<pre>%s</pre>', implode(PHP_EOL, $slowQueries));
+                $mailer  = new Mail();
+                $mailer->initConfig('autobot');
+                $mailer->AddAddress(Config::getConfig()->debug['mail']);
+                $mailer->setSubject(sprintf('[PERFORMANCE] (%s) [%s] %s - %s', $environment, $ip, $host, $uri));
+                $mailer->setBody(sprintf('<h4>%s</h4><hr />%s<hr /><pre>%s</pre>', $subject, $body, $info));
+                $mailer->Send();
             }
         }
     }
