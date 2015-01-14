@@ -1,6 +1,6 @@
 environment: loc
 
-deploy_version: 1406107298
+deploy_version: a1b2c3d4e5f6
 
 deploy_roles_app_host: root@127.0.0.1
 deploy_roles_app_root: ~/
