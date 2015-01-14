@@ -4,6 +4,7 @@ namespace Pulsarcode\Framework\Database;
 
 use Pulsarcode\Framework\Config\Config;
 use Pulsarcode\Framework\Core\Core;
+use Pulsarcode\Framework\Error\Error;
 use Pulsarcode\Framework\Mail\Mail;
 use Pulsarcode\Framework\Router\Router;
 
@@ -289,7 +290,9 @@ class MSSQLWrapper extends Core
         if ($this->cursor === false)
         {
             $this->lastErrorMessage = mssql_get_last_message();
-            trigger_error('Imposible ejecutar la query debido a un error: ' . $this->lastErrorMessage, E_USER_ERROR);
+            $errorMessage           = 'Imposible ejecutar la query debido a un error: ' . $this->lastErrorMessage;
+            Error::mail($errorMessage, $this->sql);
+            trigger_error($errorMessage, E_USER_ERROR);
         }
 
         if ($this->debug)
