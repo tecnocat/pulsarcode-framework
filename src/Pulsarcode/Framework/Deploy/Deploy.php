@@ -4,6 +4,7 @@ namespace Pulsarcode\Framework\Deploy;
 
 use Pulsarcode\Framework\Config\Config;
 use Pulsarcode\Framework\Core\Core;
+use Pulsarcode\Framework\Mail\Mail;
 
 /**
  * Class Deploy Para gestionar los deploys
@@ -26,6 +27,31 @@ class Deploy extends Core
      * Patrón para subir archivo temporal
      */
     const SCP_PATTERN = 'scp -v %s %s:%s.tmp';
+
+    /**
+     * Envía un email con la información del deploy que se acaba de realizar
+     *
+     * @param string $ip   IP de la máquina en la que se realizó el deploy
+     * @param string $tag  Tag del código en el que se encuentra el repositorio
+     * @param string $hash Hash del commit en el que se encuentra la versión del repositorio
+     */
+    public static function sendMail($ip, $tag, $hash)
+    {
+        $environment = Config::getConfig()->environment;
+        $message     = sprintf(
+            '<h4>Se ha lanzado un deployaco a <strong>%s</strong> con el tag <strong>%s (%s)</strong></h4>',
+            $environment,
+            $tag,
+            $hash
+        );
+        exec(sprintf('tail -1 /var/www/vhosts/%s.autocasion.com/autocasion/revisions.log', $environment), $info);
+        $mailer = new Mail();
+        $mailer->initConfig('autobot');
+        $mailer->AddAddress(Config::getConfig()->debug['mail']);
+        $mailer->setSubject(sprintf('[DEPLOYACO] (%s) [%s] %s (%s)', $environment, $ip, $tag, $hash));
+        $mailer->setBody(sprintf('<h4>%s</h4><hr /><pre>%s</pre>', $message, current($info)));
+        $mailer->send();
+    }
 
     /**
      * Sube uno o varios archivos a los roles especificados
