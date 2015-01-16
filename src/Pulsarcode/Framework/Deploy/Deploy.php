@@ -37,7 +37,7 @@ class Deploy extends Core
     public static function sendMail($ip, $host)
     {
         $environment    = Config::getConfig()->environment;
-        $repositoryPath = __DIR__ . '/../../../../';
+        $repositoryPath = '/var/www/html';
 
         if (Core::run(sprintf('cd %s', $repositoryPath)) === false)
         {
