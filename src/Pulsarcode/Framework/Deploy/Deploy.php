@@ -50,13 +50,19 @@ class Deploy extends Core
             exit(1);
         }
 
-        exec(sprintf('tail -1 ../var/www/vhosts/%s.autocasion.com/autocasion/revisions.log', $environment), $title);
+        exec(sprintf('tail -1 /var/www/vhosts/%s.autocasion.com/autocasion/revisions.log', $environment), $title);
         exec('git describe --abbrev=0 --tags origin/master', $lastRepositoryTag);
         exec('git describe --abbrev=0 --tags origin/master^', $prevRepositoryTag);
         $lastSubmoduleTag = file_get_contents(sprintf(__DIR__ . '/../../../../CURRENT_SUBMODULE_TAG', $environment));
         exec(sprintf('cd includes && git describe --abbrev=0 --tags %s^', $lastSubmoduleTag), $prevSubmoduleTag);
-        exec(sprintf('git log --pretty=oneline %s...%s', $prevRepositoryTag, $lastRepositoryTag), $repositoryDetails);
-        exec(sprintf('git log --pretty=oneline %s...%s', $prevSubmoduleTag, $lastSubmoduleTag), $submoduleDetails);
+        exec(
+            sprintf('git log --pretty=oneline %s...%s', current($prevRepositoryTag), current($lastRepositoryTag)),
+            $repositoryDetails
+        );
+        exec(
+            sprintf('git log --pretty=oneline %s...%s', current($prevSubmoduleTag), $lastSubmoduleTag),
+            $submoduleDetails
+        );
         $message = '
             <h4>Se ha lanzado un deployaco a %s</h4>
             <hr />
