@@ -91,12 +91,12 @@ class Deploy extends Core
             echo 'Unable to get current submodule tag';
             exit(1);
         }
-        elseif (Core::run(sprintf(self::GIT_DESCRIBE_PATTERN, "$lastSubmoTag^"), $prevSubmoTag) === false)
+        elseif (Core::run(sprintf(self::GIT_DESCRIBE_PATTERN, $lastSubmoTag[0] . '^'), $prevSubmoTag) === false)
         {
             echo 'Unable to get prev tag for current submodule tag';
             exit(1);
         }
-        elseif (Core::run(sprintf(self::GIT_LOG_PATTERN, $prevSubmoTag[0], $lastSubmoTag), $submoChanges) === false)
+        elseif (Core::run(sprintf(self::GIT_LOG_PATTERN, $prevSubmoTag[0], $lastSubmoTag[0]), $submoChanges) === false)
         {
             printf('Unable to get log details from tag %s to tag %s', current($prevRepoTag), current($lastRepoTag));
             exit(1);
@@ -117,7 +117,7 @@ class Deploy extends Core
             strtoupper($environment),
             current($lastRepoTag),
             implode('</li><li>', $repoChanges),
-            $lastSubmoTag,
+            current($lastSubmoTag),
             implode('</li><li>', $submoChanges)
         );
         $mailer  = new Mail();
