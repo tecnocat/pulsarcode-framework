@@ -106,7 +106,7 @@ class Core
      *
      * @return bool true if exit code of program was 0, false otherwise
      */
-    protected static function run($command, array &$output = null, $silent = true)
+    protected static function run($command, array &$output = null, $silent = false)
     {
         $replace   = array('$' => '\$');
         $command   = str_replace(array_keys($replace), array_values($replace), $command);
