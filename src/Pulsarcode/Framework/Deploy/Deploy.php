@@ -32,24 +32,63 @@ class Deploy extends Core
      * Envía un email con la información del deploy que se acaba de realizar
      *
      * @param string $ip   IP de la máquina en la que se realizó el deploy
-     * @param string $tag  Tag del código en el que se encuentra el repositorio
-     * @param string $hash Hash del commit en el que se encuentra la versión del repositorio
+     * @param string $host Nombre del host de la máquina en la que se realizó el deploy
      */
-    public static function sendMail($ip, $tag, $hash)
+    public static function sendMail($ip, $host)
     {
-        $environment = Config::getConfig()->environment;
-        $message     = sprintf(
-            '<h4>Se ha lanzado un deployaco a <strong>%s</strong> con el tag <strong>%s (%s)</strong></h4>',
-            $environment,
-            $tag,
-            $hash
+        $environment    = Config::getConfig()->environment;
+        $repositoryPath = __DIR__ . '/../../../../';
+
+        if (Core::run(sprintf('cd %s', $repositoryPath)) === false)
+        {
+            echo 'Unable to SYS chdir to repository path: ' . $repositoryPath;
+            exit(1);
+        }
+        elseif (chdir($repositoryPath) === false)
+        {
+            echo 'Unable to PHP chdir to repository path: ' . $repositoryPath;
+            exit(1);
+        }
+
+        exec(sprintf('tail -1 ../var/www/vhosts/%s.autocasion.com/autocasion/revisions.log', $environment), $title);
+        exec('git describe --abbrev=0 --tags origin/master', $lastRepositoryTag);
+        exec('git describe --abbrev=0 --tags origin/master^', $prevRepositoryTag);
+        $lastSubmoduleTag = file_get_contents(sprintf(__DIR__ . '/../../../../CURRENT_SUBMODULE_TAG', $environment));
+        exec(sprintf('cd includes && git describe --abbrev=0 --tags %s^', $lastSubmoduleTag), $prevSubmoduleTag);
+        exec(sprintf('git log --pretty=oneline %s...%s', $prevRepositoryTag, $lastRepositoryTag), $repositoryDetails);
+        exec(sprintf('git log --pretty=oneline %s...%s', $prevSubmoduleTag, $lastSubmoduleTag), $submoduleDetails);
+        $message = '
+            <h4>Se ha lanzado un deployaco a %s</h4>
+            <hr />
+
+            <p>Listado de cambios en el repositorio del tag desplegado %s:</p>
+            <ol><li>%s</li></ol>
+
+            <p>Listado de cambios en el submódulo del tag desplegado %s:</p>
+            <ol><li>%s</li></ol>
+        ';
+        $message = sprintf(
+            $message,
+            strtoupper($environment),
+            current($lastRepositoryTag),
+            implode('</li><li>', $repositoryDetails),
+            $lastSubmoduleTag,
+            implode('</li><li>', $submoduleDetails)
         );
-        exec(sprintf('tail -1 /var/www/vhosts/%s.autocasion.com/autocasion/revisions.log', $environment), $info);
-        $mailer = new Mail();
+        $mailer  = new Mail();
         $mailer->initConfig('autobot');
-        $mailer->AddAddress(Config::getConfig()->debug['mail']);
-        $mailer->setSubject(sprintf('[DEPLOYACO] (%s) [%s] %s (%s)', $environment, $ip, $tag, $hash));
-        $mailer->setBody(sprintf('<h4>%s</h4><hr /><pre>%s</pre>', $message, current($info)));
+        $mailer->AddAddress('alpha@pulsarcode.com');// Config::getConfig()->debug['mail']);
+        $mailer->setSubject(
+            sprintf(
+                '[DEPLOYACO] (%s) [%s] %s (%s) %s',
+                $environment,
+                $ip,
+                current($lastRepositoryTag),
+                $lastSubmoduleTag,
+                $host
+            )
+        );
+        $mailer->setBody(sprintf('<h4>%s</h4><hr /><pre>%s</pre>', current($title), $message));
         $mailer->send();
     }
 
