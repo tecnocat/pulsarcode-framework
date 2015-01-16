@@ -44,7 +44,6 @@ class Deploy extends Core
     {
         $environment    = Config::getConfig()->environment;
         $repositoryPath = '/var/www/html';
-        $revisionsLog   = sprintf('/var/www/vhosts/%s.autocasion.com/autocasion/revisions.log', $environment);
 
         if (Core::run(sprintf('cd %s', $repositoryPath)) === false)
         {
@@ -54,11 +53,6 @@ class Deploy extends Core
         elseif (chdir($repositoryPath) === false)
         {
             echo 'Unable to PHP chdir to repository path: ' . $repositoryPath;
-            exit(1);
-        }
-        elseif (Core::run(sprintf('tail -1 %s', $revisionsLog), $title) === false)
-        {
-            echo 'Unable to get last revision log line';
             exit(1);
         }
         elseif (Core::run(sprintf(self::GIT_DESCRIBE_PATTERN, 'origin/master'), $lastRepoTag) === false)
@@ -103,9 +97,6 @@ class Deploy extends Core
         }
 
         $message = '
-            <h4>Se ha lanzado un deployaco a %s</h4>
-            <hr />
-
             <p>Listado de cambios en el repositorio del tag desplegado %s:</p>
             <ol><li>%s</li></ol>
 
@@ -114,7 +105,6 @@ class Deploy extends Core
         ';
         $message = sprintf(
             $message,
-            strtoupper($environment),
             current($lastRepoTag),
             implode('</li><li>', $repoChanges),
             current($lastSubmoTag),
@@ -122,7 +112,7 @@ class Deploy extends Core
         );
         $mailer  = new Mail();
         $mailer->initConfig('autobot');
-        $mailer->AddAddress('alpha@pulsarcode.com');// Config::getConfig()->debug['mail']);
+        $mailer->AddAddress(Config::getConfig()->debug['mail']);
         $mailer->setSubject(
             sprintf(
                 '[DEPLOYACO] (%s) [%s] %s (%s) %s',
@@ -133,7 +123,7 @@ class Deploy extends Core
                 $host
             )
         );
-        $mailer->setBody(sprintf('<h4>%s</h4><hr />%s', current($title), $message));
+        $mailer->setBody(sprintf('<h4>Se ha lanzado un deployaco a %s</h4><hr /><hr />%s', $environment, $message));
         $mailer->send();
     }
 
