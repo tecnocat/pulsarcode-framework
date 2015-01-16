@@ -111,6 +111,7 @@ class Core
         $replace   = array('$' => '\$');
         $command   = str_replace(array_keys($replace), array_values($replace), $command);
         $errorFile = tempnam(sys_get_temp_dir(), uniqid('CommandErrors', true));
+        echo 'RUN: ' . $command . PHP_EOL;
         exec($command . ' 2> ' . $errorFile, $output, $exitCode);
         $errors = file($errorFile, FILE_IGNORE_NEW_LINES);
         unlink($errorFile);
@@ -119,12 +120,12 @@ class Core
         {
             if (empty($output) === false)
             {
-                print_r($output);
+                echo 'STOUT: ' . print_r($output) . PHP_EOL;
             }
 
             if (empty($errors) === false)
             {
-                print_r($errors);
+                echo 'STERR: ' . print_r($errors) . PHP_EOL;
             }
         }
 
