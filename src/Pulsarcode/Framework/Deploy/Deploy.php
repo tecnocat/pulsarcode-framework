@@ -129,7 +129,7 @@ class Deploy extends Core
                 $environment,
                 $ip,
                 current($lastRepoTag),
-                $lastSubmoTag,
+                current($lastSubmoTag),
                 $host
             )
         );
