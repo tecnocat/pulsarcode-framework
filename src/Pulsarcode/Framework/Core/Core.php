@@ -120,12 +120,12 @@ class Core
         {
             if (empty($output) === false)
             {
-                echo 'STOUT: ' . print_r($output) . PHP_EOL;
+                echo 'STOUT: ' . implode(PHP_EOL, $output) . PHP_EOL;
             }
 
             if (empty($errors) === false)
             {
-                echo 'STERR: ' . print_r($errors) . PHP_EOL;
+                echo 'STERR: ' . implode(PHP_EOL, $errors) . PHP_EOL;
             }
         }
 
