@@ -98,7 +98,7 @@ class Deploy extends Core
         }
         elseif (Core::run(sprintf(self::GIT_LOG_PATTERN, $prevSubmoTag[0], $lastSubmoTag[0]), $submoChanges) === false)
         {
-            printf('Unable to get log details from tag %s to tag %s', current($prevRepoTag), current($lastRepoTag));
+            printf('Unable to get log details from tag %s to tag %s', current($prevSubmoTag), current($lastSubmoTag));
             exit(1);
         }
 
