@@ -14,6 +14,12 @@ use Pulsarcode\Framework\Mail\Mail;
 class Deploy extends Core
 {
     /**
+     * Patrón para comandos de Git
+     */
+    const GIT_DESCRIBE_PATTERN = 'git describe --abbrev=0 --tags %s';
+    const GIT_LOG_PATTERN      = 'git log --pretty=oneline %s...%s';
+
+    /**
      * Patrón para mover archivo temporal
      */
     const MV_PATTERN = 'ssh -t %s "mv -v %s.tmp %s"';
@@ -38,6 +44,7 @@ class Deploy extends Core
     {
         $environment    = Config::getConfig()->environment;
         $repositoryPath = '/var/www/html';
+        $revisionsLog   = sprintf('/var/www/vhosts/%s.autocasion.com/autocasion/revisions.log', $environment);
 
         if (Core::run(sprintf('cd %s', $repositoryPath)) === false)
         {
@@ -49,20 +56,52 @@ class Deploy extends Core
             echo 'Unable to PHP chdir to repository path: ' . $repositoryPath;
             exit(1);
         }
+        elseif (Core::run(sprintf('tail -1 %s', $revisionsLog), $title) === false)
+        {
+            echo 'Unable to get last revision log line';
+            exit(1);
+        }
+        elseif (Core::run(sprintf(self::GIT_DESCRIBE_PATTERN, 'origin/master'), $lastRepoTag) === false)
+        {
+            echo 'Unable to get last tag of origin/master';
+            exit(1);
+        }
+        elseif (Core::run(sprintf(self::GIT_DESCRIBE_PATTERN, 'origin/master^'), $prevRepoTag) === false)
+        {
+            echo 'Unable to get prev tag for last tag of origin/master';
+            exit(1);
+        }
+        elseif (Core::run(sprintf(self::GIT_LOG_PATTERN, $prevRepoTag[0], $lastRepoTag[0]), $repoChanges) === false)
+        {
+            printf('Unable to get log details from tag %s to tag %s', current($prevRepoTag), current($lastRepoTag));
+            exit(1);
+        }
+        elseif (Core::run('cd includes') === false)
+        {
+            echo 'Unable to SYS chdir to repository submodule: includes';
+            exit(1);
+        }
+        elseif (chdir('includes') === false)
+        {
+            echo 'Unable to PHP chdir to repository submodule: includes';
+            exit(1);
+        }
+        elseif (Core::run('cat ../CURRENT_SUBMODULE_TAG', $lastSubmoTag) === false)
+        {
+            echo 'Unable to get current submodule tag';
+            exit(1);
+        }
+        elseif (Core::run(sprintf(self::GIT_DESCRIBE_PATTERN, "$lastSubmoTag^"), $prevSubmoTag) === false)
+        {
+            echo 'Unable to get prev tag for current submodule tag';
+            exit(1);
+        }
+        elseif (Core::run(sprintf(self::GIT_LOG_PATTERN, $prevSubmoTag[0], $lastSubmoTag), $submoChanges) === false)
+        {
+            printf('Unable to get log details from tag %s to tag %s', current($prevRepoTag), current($lastRepoTag));
+            exit(1);
+        }
 
-        exec(sprintf('tail -1 /var/www/vhosts/%s.autocasion.com/autocasion/revisions.log', $environment), $title);
-        exec('git describe --abbrev=0 --tags origin/master', $lastRepositoryTag);
-        exec('git describe --abbrev=0 --tags origin/master^', $prevRepositoryTag);
-        $lastSubmoduleTag = file_get_contents(sprintf(__DIR__ . '/../../../../CURRENT_SUBMODULE_TAG', $environment));
-        exec(sprintf('cd includes && git describe --abbrev=0 --tags %s^', $lastSubmoduleTag), $prevSubmoduleTag);
-        exec(
-            sprintf('git log --pretty=oneline %s...%s', current($prevRepositoryTag), current($lastRepositoryTag)),
-            $repositoryDetails
-        );
-        exec(
-            sprintf('git log --pretty=oneline %s...%s', current($prevSubmoduleTag), $lastSubmoduleTag),
-            $submoduleDetails
-        );
         $message = '
             <h4>Se ha lanzado un deployaco a %s</h4>
             <hr />
@@ -76,10 +115,10 @@ class Deploy extends Core
         $message = sprintf(
             $message,
             strtoupper($environment),
-            current($lastRepositoryTag),
-            implode('</li><li>', $repositoryDetails),
-            $lastSubmoduleTag,
-            implode('</li><li>', $submoduleDetails)
+            current($lastRepoTag),
+            implode('</li><li>', $repoChanges),
+            $lastSubmoTag,
+            implode('</li><li>', $submoChanges)
         );
         $mailer  = new Mail();
         $mailer->initConfig('autobot');
@@ -89,12 +128,12 @@ class Deploy extends Core
                 '[DEPLOYACO] (%s) [%s] %s (%s) %s',
                 $environment,
                 $ip,
-                current($lastRepositoryTag),
-                $lastSubmoduleTag,
+                current($lastRepoTag),
+                $lastSubmoTag,
                 $host
             )
         );
-        $mailer->setBody(sprintf('<h4>%s</h4><hr /><pre>%s</pre>', current($title), $message));
+        $mailer->setBody(sprintf('<h4>%s</h4><hr />%s', current($title), $message));
         $mailer->send();
     }
 
