@@ -17,6 +17,7 @@ class Deploy extends Core
      * Patrón para comandos de Git
      */
     const GIT_DESCRIBE_PATTERN = 'git describe --abbrev=0 --tags %s';
+    const GIT_FETCH_PATTERN    = 'git fetch --progress --prune origin';
     const GIT_LOG_PATTERN      = 'git log --pretty=oneline %s...%s';
 
     /**
@@ -53,6 +54,11 @@ class Deploy extends Core
         elseif (chdir($repositoryPath) === false)
         {
             echo 'Unable to PHP chdir to repository path: ' . $repositoryPath;
+            exit(1);
+        }
+        elseif (Core::run(self::GIT_FETCH_PATTERN) === false)
+        {
+            echo 'Unable to fetch Git data from repository';
             exit(1);
         }
         elseif (Core::run(sprintf(self::GIT_DESCRIBE_PATTERN, 'origin/master'), $lastRepoTag) === false)
