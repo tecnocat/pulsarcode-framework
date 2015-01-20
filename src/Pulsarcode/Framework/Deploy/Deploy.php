@@ -144,7 +144,7 @@ class Deploy extends Core
                 $host
             )
         );
-        $mailer->setBody(sprintf('<h4>Se ha lanzado un deployaco a %s</h4><hr /><hr />%s', $environment, $message));
+        $mailer->setBody(sprintf('<h4>Se ha lanzado un deployaco a %s</h4><hr />%s', $environment, $message));
         $mailer->send();
     }
 
