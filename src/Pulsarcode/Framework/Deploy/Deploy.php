@@ -60,7 +60,7 @@ class Deploy extends Core
             echo 'Unable to get last tag of origin/master';
             exit(1);
         }
-        elseif (Core::run(sprintf(self::GIT_DESCRIBE_PATTERN, 'origin/master^'), $prevRepoTag) === false)
+        elseif (Core::run(sprintf(self::GIT_DESCRIBE_PATTERN, ''), $prevRepoTag) === false)
         {
             echo 'Unable to get prev tag for last tag of origin/master';
             exit(1);
