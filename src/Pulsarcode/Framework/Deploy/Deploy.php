@@ -114,21 +114,21 @@ class Deploy extends Core
         }
 
         $message = '
-            <p>Listado de cambios en el repositorio del tag desplegado %s:</p>
-            <ol><li>%s</li></ol>
+            <h4>Listado de cambios en el repositorio del tag desplegado %s:</h4>
+            <pre>%s</pre>
             <pre>%s</pre>
 
-            <p>Listado de cambios en el submódulo del tag desplegado %s:</p>
-            <ol><li>%s</li></ol>
+            <h4>Listado de cambios en el submódulo del tag desplegado %s:</h4>
+            <pre>%s</pre>
             <pre>%s</pre>
         ';
         $message = sprintf(
             $message,
             current($lastRepoTag),
-            implode('</li><li>', $repoChanges),
+            implode(PHP_EOL, $repoChanges),
             implode(PHP_EOL, $repoStats),
             current($lastSubmoTag),
-            implode('</li><li>', $submoChanges),
+            implode(PHP_EOL, $submoChanges),
             implode(PHP_EOL, $submoStats)
         );
         $mailer  = new Mail();
@@ -144,7 +144,7 @@ class Deploy extends Core
                 $host
             )
         );
-        $mailer->setBody(sprintf('<h4>Se ha lanzado un deployaco a %s</h4><hr />%s', $environment, $message));
+        $mailer->setBody(sprintf('<h3>Se ha lanzado un deployaco a %s</h3><hr />%s', $environment, $message));
         $mailer->send();
     }
 
