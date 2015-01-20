@@ -89,6 +89,29 @@ class Mail extends Core
     }
 
     /**
+     * Agrega un destinatario mas a los existentes en BCC
+     *
+     * @param string $address
+     * @param string $name
+     */
+    public function addBccAddress($address, $name = '')
+    {
+        $this->mailer->addBCC($address, $name);
+    }
+
+
+    /**
+     * Agrega un destinatario mas a los existentes en CC
+     *
+     * @param string $address
+     * @param string $name
+     */
+    public function addCcAddress($address, $name = '')
+    {
+        $this->mailer->addCC($address, $name);
+    }
+
+    /**
      * Inicializa l configuración para enviar el email
      *
      * @param string $config Nombre de la configuración a obtener
