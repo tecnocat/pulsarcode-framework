@@ -17,6 +17,7 @@ class Deploy extends Core
      * Patrón para comandos de Git
      */
     const GIT_DESCRIBE_PATTERN = 'git describe --abbrev=0 --tags %s';
+    const GIT_DIFF_PATTERN     = 'git diff --stat %s %s';
     const GIT_FETCH_PATTERN    = 'git fetch --progress --prune origin';
     const GIT_LOG_PATTERN      = 'git log --pretty=oneline %s...%s';
 
@@ -76,6 +77,11 @@ class Deploy extends Core
             printf('Unable to get log details from tag %s to tag %s', current($prevRepoTag), current($lastRepoTag));
             exit(1);
         }
+        elseif (Core::run(sprintf(self::GIT_DIFF_PATTERN, $prevRepoTag[0], $lastRepoTag[0]), $repoStats) === false)
+        {
+            printf('Unable to get diff details from tag %s to tag %s', current($prevRepoTag), current($lastRepoTag));
+            exit(1);
+        }
         elseif (Core::run('cd includes') === false)
         {
             echo 'Unable to SYS chdir to repository submodule: includes';
@@ -101,20 +107,29 @@ class Deploy extends Core
             printf('Unable to get log details from tag %s to tag %s', current($prevSubmoTag), current($lastSubmoTag));
             exit(1);
         }
+        elseif (Core::run(sprintf(self::GIT_DIFF_PATTERN, $prevSubmoTag[0], $lastSubmoTag[0]), $submoStats) === false)
+        {
+            printf('Unable to get diff details from tag %s to tag %s', current($prevSubmoTag), current($lastSubmoTag));
+            exit(1);
+        }
 
         $message = '
             <p>Listado de cambios en el repositorio del tag desplegado %s:</p>
             <ol><li>%s</li></ol>
+            <pre>%s</pre>
 
             <p>Listado de cambios en el submódulo del tag desplegado %s:</p>
             <ol><li>%s</li></ol>
+            <pre>%s</pre>
         ';
         $message = sprintf(
             $message,
             current($lastRepoTag),
             implode('</li><li>', $repoChanges),
+            implode(PHP_EOL, $repoStats),
             current($lastSubmoTag),
-            implode('</li><li>', $submoChanges)
+            implode('</li><li>', $submoChanges),
+            implode(PHP_EOL, $submoStats)
         );
         $mailer  = new Mail();
         $mailer->initConfig('autobot');
