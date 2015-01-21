@@ -16,6 +16,11 @@ use Pulsarcode\Framework\Router\Router;
 class MSSQLWrapper extends Core
 {
     /**
+     * Límite de tamaño para el log de queries (256MB)
+     */
+    const SQL_LOG_SIZE = 268435456;
+
+    /**
      * @var array Queries ejecutadas para su pintado
      */
     private static $queries = array();
@@ -335,7 +340,7 @@ class MSSQLWrapper extends Core
             $host = 'localhost';
         }
 
-        $file = sprintf('%s/database-%s-%s.log', Config::getConfig()->paths['logs'], date('Y-m-d'), $host);
+        $sqlLog = sprintf('%s/database-%s.log', Config::getConfig()->paths['logs'], $host);
 
         if ('cli' === php_sapi_name())
         {
@@ -348,9 +353,17 @@ class MSSQLWrapper extends Core
              * Guardamos el log en background para no penalizar rendimiento
              */
             register_shutdown_function(
-                function () use ($file, $message)
+                function () use ($sqlLog, $message)
                 {
-                    file_put_contents($file, $message . PHP_EOL, FILE_APPEND);
+                    if (file_exists($sqlLog) && filesize($sqlLog) >= self::SQL_LOG_SIZE)
+                    {
+                        /**
+                         * Guardamos al menos la última pila de errores pos si tuvieramos que consultarlos
+                         */
+                        rename($sqlLog, $sqlLog . '.old');
+                    }
+
+                    file_put_contents($sqlLog, $message . PHP_EOL, FILE_APPEND);
                 }
             );
         }
