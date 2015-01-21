@@ -208,14 +208,7 @@ class Error extends Core
 
                     $mailer->setSubject(sprintf('[ERRORACO] (%s) [%s] %s - %s', $environment, $ip, $host, $uri));
                     $mailer->setBody(sprintf('<h4>%s</h4><hr />%s<hr /><pre>%s</pre>', $subject, $body, $info));
-
-                    /**
-                     * TODO: Eliminar esta basura cuando el servidor de correo sea mas potente
-                     */
-                    if (rand(1, 9) == 5)
-                    {
-                        $mailer->Send();
-                    }
+                    $mailer->Send();
                 }
             );
         }
@@ -569,14 +562,7 @@ class Error extends Core
         $mailer->AddAddress(Config::getConfig()->debug['mail']);
         $mailer->setSubject(sprintf('[ERRORACO] (%s) [%s] %s - %s', $environment, $ip, $host, $uri));
         $mailer->setBody(sprintf('<h4>%s</h4><hr /><pre>%s</pre>', $message, $info));
-
-        /**
-         * TODO: Eliminar esta basura cuando el servidor de correo sea mas potente
-         */
-        if (rand(1, 9) == 5)
-        {
-            $mailer->Send();
-        }
+        $mailer->Send();
 
         if (php_sapi_name() === 'cli')
         {
