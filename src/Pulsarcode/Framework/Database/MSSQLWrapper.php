@@ -296,7 +296,7 @@ class MSSQLWrapper extends Core
         {
             $this->lastErrorMessage = mssql_get_last_message();
             $errorMessage           = 'Imposible ejecutar la query debido a un error: ' . $this->lastErrorMessage;
-            Error::mail($errorMessage, $this->sql);
+            Error::mail($errorMessage, htmlentities($this->sql));
             trigger_error($errorMessage, E_USER_WARNING);
         }
 
