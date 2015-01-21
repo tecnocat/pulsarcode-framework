@@ -20,9 +20,9 @@ class Error extends Core
     const ERROR_LOG_FILE = 'php_error.log';
 
     /**
-     * Límite de tamaño para el log de errores (5MB)
+     * Límite de tamaño para el log de errores (256MB)
      */
-    const ERROR_LOG_SIZE = 5242880;
+    const ERROR_LOG_SIZE = 268435456;
 
     /**
      * @var array Colores para según que tipo de error
