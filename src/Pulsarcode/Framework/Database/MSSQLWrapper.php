@@ -355,7 +355,7 @@ class MSSQLWrapper extends Core
             register_shutdown_function(
                 function () use ($sqlLog, $message)
                 {
-                    if (file_exists($sqlLog) && filesize($sqlLog) >= self::SQL_LOG_SIZE)
+                    if (file_exists($sqlLog) && filesize($sqlLog) >= MSSQLWrapper::SQL_LOG_SIZE)
                     {
                         /**
                          * Guardamos al menos la última pila de errores pos si tuvieramos que consultarlos
