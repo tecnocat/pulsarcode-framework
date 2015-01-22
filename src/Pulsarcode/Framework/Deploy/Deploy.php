@@ -20,6 +20,7 @@ class Deploy extends Core
     const GIT_DIFF_PATTERN     = 'git diff --stat %s %s';
     const GIT_FETCH_PATTERN    = 'git fetch --progress --prune origin';
     const GIT_LOG_PATTERN      = 'git log --pretty=oneline %s...%s';
+    const GIT_STATUS_PATTERN   = 'git status';
 
     /**
      * Patrón para mover archivo temporal
@@ -82,6 +83,11 @@ class Deploy extends Core
             printf('Unable to get diff details from tag %s to tag %s', current($prevRepoTag), current($lastRepoTag));
             exit(1);
         }
+        elseif (Core::run(self::GIT_STATUS_PATTERN, $repoStatus) === false)
+        {
+            echo 'Unable to get Git status of repository';
+            exit(1);
+        }
         elseif (Core::run('cd includes') === false)
         {
             echo 'Unable to SYS chdir to repository submodule: includes';
@@ -112,13 +118,20 @@ class Deploy extends Core
             printf('Unable to get diff details from tag %s to tag %s', current($prevSubmoTag), current($lastSubmoTag));
             exit(1);
         }
+        elseif (Core::run(self::GIT_STATUS_PATTERN, $submoStatus) === false)
+        {
+            echo 'Unable to get Git status of submodule';
+            exit(1);
+        }
 
         $message = '
-            <h4>Listado de cambios en el repositorio del tag desplegado %s:</h4>
+            <h3>Listado de cambios en el repositorio del tag desplegado %s:</h3>
+            <pre>%s</pre>
             <pre>%s</pre>
             <pre>%s</pre>
 
-            <h4>Listado de cambios en el submódulo del tag desplegado %s:</h4>
+            <h3>Listado de cambios en el submódulo del tag desplegado %s:</h3>
+            <pre>%s</pre>
             <pre>%s</pre>
             <pre>%s</pre>
         ';
@@ -127,9 +140,11 @@ class Deploy extends Core
             current($lastRepoTag),
             implode(PHP_EOL, $repoChanges),
             implode(PHP_EOL, $repoStats),
+            implode(PHP_EOL, $repoStatus),
             current($lastSubmoTag),
             implode(PHP_EOL, $submoChanges),
-            implode(PHP_EOL, $submoStats)
+            implode(PHP_EOL, $submoStats),
+            implode(PHP_EOL, $submoStatus)
         );
         $mailer  = new Mail();
         $mailer->initConfig('autobot');
@@ -144,7 +159,7 @@ class Deploy extends Core
                 $host
             )
         );
-        $mailer->setBody(sprintf('<h3>Se ha lanzado un deployaco a %s</h3><hr />%s', $environment, $message));
+        $mailer->setBody(sprintf('<h4>Se ha lanzado un deployaco a %s</h4><hr />%s', $environment, $message));
         $mailer->send();
     }
 
