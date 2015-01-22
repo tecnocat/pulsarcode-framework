@@ -471,16 +471,28 @@ class MSSQLWrapper extends Core
             {
                 if (false === empty(self::$queries))
                 {
-                    $queries = self::$queries;
-                    usort(
-                        $queries,
-                        function ($a, $b)
-                        {
-                            return $a['time'] < $b['time'];
-                        }
-                    );
+                    /**
+                     * Si es por línea de comandos pintamos un resumen en texto plano
+                     */
+                    if (php_sapi_name() == 'cli')
+                    {
+                        /**
+                         * TODO: Pintar estadísticas teniendo en cuenta que en loc y dev se pintaron ya
+                         */
+                    }
+                    else
+                    {
+                        $queries = self::$queries;
+                        usort(
+                            $queries,
+                            function ($a, $b)
+                            {
+                                return $a['time'] < $b['time'];
+                            }
+                        );
 
-                    include Config::getConfig()->paths['views']['web'] . '/query-table.html.php';
+                        include Config::getConfig()->paths['views']['web'] . '/query-table.html.php';
+                    }
                 }
             }
         }
