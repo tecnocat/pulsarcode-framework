@@ -287,22 +287,31 @@ class MSSQLWrapper extends Core
     public function query()
     {
         $this->setQueryTimeStart();
-        $this->lastErrorCode    = 0;
-        $this->lastErrorMessage = '';
-        $this->cursor           = mssql_query($this->sql, $this->link);
+        $this->cursor = mssql_query($this->sql, $this->link);
         $this->setQueryTimeFinish();
-
-        if ($this->cursor === false)
-        {
-            $this->lastErrorMessage = mssql_get_last_message();
-            $errorMessage           = 'Imposible ejecutar la query debido a un error: ' . $this->lastErrorMessage;
-            Error::mail($errorMessage, htmlentities($this->sql));
-            trigger_error($errorMessage, E_USER_WARNING);
-        }
 
         if ($this->debug)
         {
             $this->log($this->sql, $isQuery = true);
+        }
+
+        if ($this->cursor === false)
+        {
+            $this->lastErrorMessage = (mssql_get_last_message()) ?: 'MSSQL no ha dado información sobre este error';
+            $errorMessage           = 'Imposible ejecutar la query debido a un error: ' . $this->lastErrorMessage;
+            Error::mail($errorMessage, htmlentities($this->sql));
+
+            /**
+             * TODO: Hasta reducir el numero ingente de errores tenemos que hacer esta Garretada
+             */
+            if (false !== in_array(Config::getConfig()->environment, Config::$debugEnvironments))
+            {
+                trigger_error($errorMessage, E_USER_ERROR);
+            }
+            else
+            {
+                trigger_error($errorMessage, E_USER_WARNING);
+            }
         }
 
         return ($this->cursor !== false) ? $this->cursor : false;
