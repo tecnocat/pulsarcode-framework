@@ -181,7 +181,7 @@ class Error extends Core
                 '$_FILES'   => Router::getRequest()->files->all(),
                 '$_COOKIE'  => Router::getRequest()->cookies->all(),
                 '$_SERVER'  => Router::getRequest()->server->all(),
-                '$_SESSION' => Router::getRequest()->getSession()->all(),
+                '$_SESSION' => ('cli' === php_sapi_name() ? 'cli' : Router::getRequest()->getSession()->all()),
             ),
             true
         );
@@ -444,7 +444,7 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
-        parent::finishRequest();
+            parent::finishRequest();
         exit;
     }
 
@@ -469,7 +469,7 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
-        parent::finishRequest();
+            parent::finishRequest();
         exit;
     }
 
@@ -494,7 +494,7 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
-        parent::finishRequest();
+            parent::finishRequest();
         exit;
     }
 
@@ -545,7 +545,7 @@ class Error extends Core
                 '$_FILES'   => Router::getRequest()->files->all(),
                 '$_COOKIE'  => Router::getRequest()->cookies->all(),
                 '$_SERVER'  => Router::getRequest()->server->all(),
-                '$_SESSION' => Router::getRequest()->getSession()->all(),
+                '$_SESSION' => ('cli' === php_sapi_name() ? 'cli' : Router::getRequest()->getSession()->all()),
             ),
             true
         );
@@ -601,7 +601,7 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
-        parent::finishRequest();
+            parent::finishRequest();
         Error::parseErrors();
         exit;
     }
