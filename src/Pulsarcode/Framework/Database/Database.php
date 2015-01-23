@@ -222,6 +222,19 @@ class Database extends Core
     }
 
     /**
+     * Retorna la primera row del resultado de la query
+     *
+     * @return bool|null
+     */
+    public function loadRow()
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadRow();
+    }
+
+    /**
      * Libera los datos de la query anterior
      */
     public function release()
