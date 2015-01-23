@@ -444,7 +444,15 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
+        if ('cli' === php_sapi_name())
+        {
+            parent::finishScript();
+        }
+        else
+        {
             parent::finishRequest();
+        }
+
         exit;
     }
 
@@ -469,7 +477,15 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
+        if ('cli' === php_sapi_name())
+        {
+            parent::finishScript();
+        }
+        else
+        {
             parent::finishRequest();
+        }
+
         exit;
     }
 
@@ -494,7 +510,15 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
+        if ('cli' === php_sapi_name())
+        {
+            parent::finishScript();
+        }
+        else
+        {
             parent::finishRequest();
+        }
+
         exit;
     }
 
@@ -601,7 +625,15 @@ class Error extends Core
             require Config::getConfig()->paths['views']['web'] . '/404.html.php';
         }
 
+        if ('cli' === php_sapi_name())
+        {
+            parent::finishScript();
+        }
+        else
+        {
             parent::finishRequest();
+        }
+
         Error::parseErrors();
         exit;
     }

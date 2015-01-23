@@ -194,7 +194,28 @@ class Router extends Core
     }
 
     /**
-     * Procesa y ejecuta la acción adecuada
+     * Procesa una ejecución en consola
+     */
+    public static function execute()
+    {
+        if ('cli' !== php_sapi_name())
+        {
+            trigger_error('La función execute sólo puede ser invocada por scripts en consola', E_USER_ERROR);
+        }
+        else
+        {
+            self::startScript();
+
+            if (isset(self::$request) === false)
+            {
+                self::$request = Request::createFromGlobals();
+                self::$request->setSession(new Session());
+            }
+        }
+    }
+
+    /**
+     * Procesa una petición Web
      */
     public static function dispatch()
     {
