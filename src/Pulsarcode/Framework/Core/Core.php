@@ -6,6 +6,7 @@ use Pulsarcode\Framework\Cache\Cache;
 use Pulsarcode\Framework\Database\Database;
 use Pulsarcode\Framework\Database\MSSQLWrapper;
 use Pulsarcode\Framework\Error\Error;
+use Pulsarcode\Framework\Router\Router;
 
 /**
  * Class Core Para gestionar el Framework
@@ -30,9 +31,14 @@ class Core
     private static $startConnection = 0.0;
 
     /**
-     * @var float Instancia en el tiempo en el que se inició la petición
+     * @var float Instancia en el tiempo en el que se inició la petición Web
      */
     private static $startRequest = 0.0;
+
+    /**
+     * @var float Instancia en el tiempo en el que se inició la ejecución en consola
+     */
+    private static $startScript = 0.0;
 
     /**
      * Constructor
@@ -53,10 +59,18 @@ class Core
          * Capturador de queries
          */
         Database::setupQueryLogger();
+
+        /**
+         * Si la ejecución es en consola iniciamos la misma
+         */
+        if ('cli' === php_sapi_name() && 0.0 === self::$startScript)
+        {
+            Router::execute();
+        }
     }
 
     /**
-     * Guarda en el log el tiempo transcurrido durante la petición
+     * Muestra información sobre el tiempo transcurrido durante la petición Web
      */
     public static function finishRequest()
     {
@@ -70,6 +84,40 @@ class Core
         $errorMessage = sprintf(
             'Duración de la petición: %.3fms (Web: %.3fms | Database: %.3fms [Conexión: %.3fms | Queries: %.3fms])',
             $requestTime,
+            $spaghettiTime,
+            $databaseTime,
+            $connectionTime,
+            $queryTime
+        );
+        $errorData    = array(
+            'errorLevel'   => 'PERFORMANCE_INFO',
+            'errorMessage' => $errorMessage,
+            'errorFile'    => __FILE__,
+            'errorLine'    => __LINE__,
+        );
+        Error::setError('PHP', $errorData);
+
+        /**
+         * TODO: Hasta hacer una tabla o similar para mostrar la información de arriba usar el parseo de errores
+         */
+        Error::parseErrors();
+    }
+
+    /**
+     * Muestra información sobre el tiempo transcurrido durante la ejecución en consola
+     */
+    public static function finishScript()
+    {
+        $microtime      = microtime(true);
+        $scriptTime     = $microtime - self::$startScript;
+        $connectionTime = (self::$startConnection) ? self::$finishConnection - self::$startConnection : 0.0;
+        $queryTime      = (self::$startConnection) ? MSSQLWrapper::getQueryTimeTotal() : 0.0;
+        $databaseTime   = (self::$startConnection) ? $connectionTime + $queryTime : 0.0;
+        $spaghettiTime  = $scriptTime - $databaseTime;
+
+        $errorMessage = sprintf(
+            'Duración de la ejecución: %.3fms (Cli: %.3fms | Database: %.3fms [Conexión: %.3fms | Queries: %.3fms])',
+            $scriptTime,
             $spaghettiTime,
             $databaseTime,
             $connectionTime,
@@ -141,7 +189,7 @@ class Core
     }
 
     /**
-     * Setea el momento del tiempo en el que se inicia la petición
+     * Setea el momento del tiempo en el que se inicia la petición Web
      */
     protected static function startRequest()
     {
@@ -153,6 +201,25 @@ class Core
                 function ()
                 {
                     Core::finishRequest();
+                }
+            );
+            self::$dispatched = true;
+        }
+    }
+
+    /**
+     * Setea el momento del tiempo en el que se inicia la ejecución en consola
+     */
+    protected static function startScript()
+    {
+        self::$startScript = (self::$startScript) ?: microtime(true);
+
+        if (false === isset(self::$dispatched))
+        {
+            register_shutdown_function(
+                function ()
+                {
+                    Core::finishScript();
                 }
             );
             self::$dispatched = true;
