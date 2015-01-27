@@ -292,12 +292,25 @@ class MSSQLWrapper extends Core
 
         if ($this->debug)
         {
-            $this->log($this->sql, $isQuery = true);
+            $this->log($this->sql, $isQuery = true, $error = ($this->cursor === false));
         }
 
         if ($this->cursor === false)
         {
-            $this->lastErrorMessage = (mssql_get_last_message()) ?: 'MSSQL no ha dado información sobre este error';
+            $lastErrorMessage = mssql_get_last_message() ?: 'MSSQL no ha dado información sobre este error';
+
+            switch(connection_status())
+            {
+                case CONNECTION_ABORTED:
+                    $lastErrorMessage = sprintf('La conexión ha sido abortada por un error (%s)', $lastErrorMessage);
+                    break;
+
+                case CONNECTION_TIMEOUT:
+                    $lastErrorMessage = sprintf('La conexión ha sido cerrada por tiempo (%s)', $lastErrorMessage);
+                    break;
+            }
+
+            $this->lastErrorMessage = $lastErrorMessage;
             $errorMessage           = 'Imposible ejecutar la query debido a un error: ' . $this->lastErrorMessage;
             Error::mail($errorMessage, htmlentities($this->sql));
 
@@ -330,13 +343,14 @@ class MSSQLWrapper extends Core
      *
      * @param string $message Texto a registrar
      * @param bool   $isQuery Indica si proviene de $this->query
+     * @param bool   $error   Indica si la query ha lanzado un error
      */
-    private function log($message, $isQuery = false)
+    private function log($message, $isQuery = false, $error = false)
     {
         $message = sprintf(
             '[%s] %s %s',
             date('Y-m-d H:i:s'),
-            $this->getQueryTimestamp($isQuery),
+            $this->getQueryTimestamp($isQuery, $error),
             preg_replace('/\s+/', ' ', $message)
         );
 
@@ -399,16 +413,21 @@ class MSSQLWrapper extends Core
      * Devuelve la marca de tiempo actual respecto al tiempo de inicio
      *
      * @param bool $isQuery Indica si proviene de $this->query
+     * @param bool $error   Indica si la query ha lanzado un error
      *
      * @return string Marca de tiempo en milisegundos
      */
-    private function getQueryTimestamp($isQuery = false)
+    private function getQueryTimestamp($isQuery = false, $error = false)
     {
         $queryTime = ($this->queryTimeFinish - $this->queryTimeStart);
 
         if (false !== $isQuery)
         {
-            self::$queries[] = array('time' => $queryTime, 'sql' => $this->sql);
+            self::$queries[] = array(
+                'error' => $error,
+                'time'  => $queryTime,
+                'sql'   => $this->sql,
+            );
         }
 
         return sprintf('(Query: %.3fms Total: %.3fms)', $queryTime, self::$queryTimeTotal);
@@ -514,7 +533,12 @@ class MSSQLWrapper extends Core
             {
                 if ($query['time'] > Config::getConfig()->queries['slow'])
                 {
-                    $slowQueries[] = sprintf('%.3fms > %s', $query['time'], preg_replace('/\s+/', ' ', $query['sql']));
+                    $slowQueries[] = sprintf(
+                        '%.3fms > %s %s',
+                        $query['time'],
+                        (false !== $query['error'] ? '[ERROR]' : '[OK]'),
+                        preg_replace('/\s+/', ' ', $query['sql'])
+                    );
                 }
             }
 
@@ -985,14 +1009,14 @@ class MSSQLWrapper extends Core
             $values[] = $this->Quote( $v );
         }
         $this->setQuery( sprintf( $fmtsql, implode( ",", $fields ) ,  implode( ",", $values ) ) );
-        ($verbose) && print "$sql<br />\n";
+
         if (!$this->query()) {
                 $this->offset = 0;
             return false;
         }
         $this->setQuery ("SELECT @@IDENTITY");
         $id = $this->loadResult();
-        ($verbose) && print "id=[$id]<br />\n";
+
         if ($keyName && $id) {
             $object->$keyName = $id;
         }
