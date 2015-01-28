@@ -457,8 +457,10 @@ class Cache extends Core
 
                         case 'redis':
                             $this->checkRequiredProviderFields(array('host', 'port'));
+                            $redis    = new \Redis();
                             $instance = new DoctrineCache\RedisCache();
-                            $instance->setRedis(new \Redis());
+                            $redis->connect($host, $port);
+                            $instance->setRedis($redis);
 
                             if ($instance->getRedis()->connect($host, $port) !== false)
                             {
