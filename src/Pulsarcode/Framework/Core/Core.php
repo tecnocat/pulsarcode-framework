@@ -159,7 +159,7 @@ class Core
         $replace   = array('$' => '\$');
         $command   = str_replace(array_keys($replace), array_values($replace), $command);
         $errorFile = tempnam(sys_get_temp_dir(), uniqid('CommandErrors', true));
-        echo 'RUN: ' . $command . PHP_EOL;
+        echo 'STRUN: ' . $command . PHP_EOL;
         exec($command . ' 2> ' . $errorFile, $output, $exitCode);
         $errors = file($errorFile, FILE_IGNORE_NEW_LINES);
         unlink($errorFile);
@@ -168,12 +168,12 @@ class Core
         {
             if (empty($output) === false)
             {
-                echo 'STOUT: ' . implode(PHP_EOL, $output) . PHP_EOL;
+                echo 'STOUT: ' . implode(PHP_EOL . 'STOUT: ', $output) . PHP_EOL;
             }
 
             if (empty($errors) === false)
             {
-                echo 'STERR: ' . implode(PHP_EOL, $errors) . PHP_EOL;
+                echo 'STERR: ' . implode(PHP_EOL . 'STERR: ', $errors) . PHP_EOL;
             }
         }
 

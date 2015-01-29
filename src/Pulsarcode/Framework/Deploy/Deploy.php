@@ -14,12 +14,17 @@ use Pulsarcode\Framework\Mail\Mail;
 class Deploy extends Core
 {
     /**
+     * Patrones de configuración
+     */
+    const COMMIT_URL_PATTERN = '<a href="http://git.autocasion.com/autocasion/%s/commit/%2$s">%2$s</a> %3$s';
+
+    /**
      * Patrón para comandos de Git
      */
     const GIT_DESCRIBE_PATTERN = 'git describe --abbrev=0 --tags %s';
     const GIT_DIFF_PATTERN     = 'git diff --stat %s %s';
     const GIT_FETCH_PATTERN    = 'git fetch --progress --prune origin';
-    const GIT_LOG_PATTERN      = 'git log --pretty=oneline %s...%s';
+    const GIT_LOG_PATTERN      = 'git log --pretty=format:"%%H (%%an) %%s" %s...%s';
     const GIT_STATUS_PATTERN   = 'git status';
 
     /**
@@ -125,24 +130,48 @@ class Deploy extends Core
         }
 
         $message = '
-            <h3>Listado de cambios en el repositorio del tag desplegado %s:</h3>
+            <h1>Repositorio autocasion</h1>
+            <h3>Listado de commits aplicados en el repositorio del tag desplegado %s:</h3>
             <pre>%s</pre>
+            <h3>Archivos afectados por estos commits:</h3>
             <pre>%s</pre>
+            <h3>Estado actual del repositorio:</h3>
             <pre>%s</pre>
 
-            <h3>Listado de cambios en el submódulo del tag desplegado %s:</h3>
+            <hr />
+
+            <h1>Submódulo includes</h1>
+            <h3>Listado de commits aplicados en el submódulo del tag desplegado %s:</h3>
             <pre>%s</pre>
+            <h3>Archivos afectados por estos commits:</h3>
             <pre>%s</pre>
+            <h3>Estado actual del submódulo:</h3>
             <pre>%s</pre>
         ';
+
+        $totalCommits = array($repoCommits, $submoCommits);
+
+        foreach ($totalCommits as &$commits)
+        {
+            $repository = (false === isset($repository)) ? 'autocasion' : 'includes';
+
+            foreach ($commits as &$commit)
+            {
+                list($commitHash, $commitMessage) = explode(' ', $commit, 2);
+                $commit = sprintf(self::COMMIT_URL_PATTERN, $repository, $commitHash, $commitMessage);
+            }
+        }
+
+        list($repoCommits, $submoCommits) = $totalCommits;
+
         $message = sprintf(
             $message,
             current($lastRepoTag),
-            implode(PHP_EOL, $repoChanges),
+            implode(PHP_EOL, $repoCommits),
             implode(PHP_EOL, $repoStats),
             implode(PHP_EOL, $repoStatus),
             current($lastSubmoTag),
-            implode(PHP_EOL, $submoChanges),
+            implode(PHP_EOL, $submoCommits),
             implode(PHP_EOL, $submoStats),
             implode(PHP_EOL, $submoStatus)
         );
@@ -159,7 +188,7 @@ class Deploy extends Core
                 $host
             )
         );
-        $mailer->setBody(sprintf('<h4>Se ha lanzado un deployaco a %s</h4><hr />%s', $environment, $message));
+        $mailer->setBody($message);
         $mailer->send();
     }
 
