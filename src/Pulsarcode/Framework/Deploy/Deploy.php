@@ -78,7 +78,7 @@ class Deploy extends Core
             echo 'Unable to get prev tag for last tag of origin/master';
             exit(1);
         }
-        elseif (Core::run(sprintf(self::GIT_LOG_PATTERN, $prevRepoTag[0], $lastRepoTag[0]), $repoChanges) === false)
+        elseif (Core::run(sprintf(self::GIT_LOG_PATTERN, $prevRepoTag[0], $lastRepoTag[0]), $repoCommits) === false)
         {
             printf('Unable to get log details from tag %s to tag %s', current($prevRepoTag), current($lastRepoTag));
             exit(1);
@@ -113,7 +113,7 @@ class Deploy extends Core
             echo 'Unable to get prev tag for current submodule tag';
             exit(1);
         }
-        elseif (Core::run(sprintf(self::GIT_LOG_PATTERN, $prevSubmoTag[0], $lastSubmoTag[0]), $submoChanges) === false)
+        elseif (Core::run(sprintf(self::GIT_LOG_PATTERN, $prevSubmoTag[0], $lastSubmoTag[0]), $submoCommits) === false)
         {
             printf('Unable to get log details from tag %s to tag %s', current($prevSubmoTag), current($lastSubmoTag));
             exit(1);
