@@ -312,7 +312,7 @@ class MSSQLWrapper extends Core
 
             $this->lastErrorMessage = $lastErrorMessage;
             $errorMessage           = 'Imposible ejecutar la query debido a un error: ' . $this->lastErrorMessage;
-            Error::mail($errorMessage, htmlentities($this->sql));
+            Error::mail($errorMessage, sprintf('<pre>%s</pre>', htmlentities($this->sql)));
 
             /**
              * TODO: Hasta reducir el numero ingente de errores tenemos que hacer esta Garretada
