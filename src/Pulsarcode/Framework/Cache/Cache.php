@@ -104,7 +104,7 @@ class Cache extends Core
     {
         parent::__construct();
 
-        if (isset(self::$providers) === false)
+        if (false === isset(self::$providers))
         {
             self::$providers = Config::getConfig()->cache['providers'];
         }
@@ -117,7 +117,7 @@ class Cache extends Core
      */
     public static function setupCacheObjects()
     {
-        if (isset(self::$dispatched) === false)
+        if (false === isset(self::$dispatched))
         {
             register_shutdown_function(
                 function ()
@@ -134,18 +134,18 @@ class Cache extends Core
      */
     public static function showObjects()
     {
-        if (Router::getRequest()->isXmlHttpRequest())
+        if (false !== Router::getRequest()->isXmlHttpRequest())
         {
             return;
         }
-        elseif (strpos(Router::getRequest()->getPathInfo(), '.json') !== false)
+        elseif (false !== strpos(Router::getRequest()->getPathInfo(), '.json'))
         {
             return;
         }
 
-        if (Config::getConfig()->cache['active'] && Config::getConfig()->cache['show'])
+        if (false !== Config::getConfig()->cache['active'] && false !== Config::getConfig()->cache['show'])
         {
-            if (in_array(Config::getConfig()->environment, Config::$debugEnvironments))
+            if (false !== in_array(Config::getConfig()->environment, Config::$debugEnvironments))
             {
                 foreach (self::$providerObjects as $providerName => $providerObjects)
                 {
@@ -165,11 +165,8 @@ class Cache extends Core
      */
     public function delete($cacheKey = '')
     {
-        if ($this->providerIsActive() && !empty($cacheKey))
+        if (false !== $this->providerIsActive() && false === empty($cacheKey))
         {
-            /**
-             * TODO: Transformar este switch en adaptadores independientes
-             */
             switch ($this->currentProvider)
             {
                 case 'apc':
@@ -177,21 +174,11 @@ class Cache extends Core
                     break;
 
                 case 'memcache':
-                    /** @var DoctrineCache\MemcacheCache $instance */
-                    $instance = &self::$providerInstances[$this->currentProvider];
-                    $instance->getMemcache()->delete($cacheKey);
-                    break;
-
                 case 'memcached':
-                    /** @var DoctrineCache\MemcachedCache $instance */
-                    $instance = &self::$providerInstances[$this->currentProvider];
-                    $instance->getMemcached()->delete($cacheKey);
-                    break;
-
                 case 'redis':
-                    /** @var DoctrineCache\RedisCache $instance */
+                    /** @var DoctrineCache\CacheProvider $instance */
                     $instance = &self::$providerInstances[$this->currentProvider];
-                    $instance->getRedis()->delete($cacheKey);
+                    $instance->delete($cacheKey);
                     break;
 
                 default:
@@ -212,18 +199,19 @@ class Cache extends Core
     {
         $result = false;
 
-        if (Config::getConfig()->cache['active'] && $this->providerIsActive() && !empty($cacheKey))
+        if (false === Config::getConfig()->cache['active'])
+        {
+            trigger_error('La caché está desactivada, proveedor sin uso: ' . $this->currentProvider, E_USER_WARNING);
+        }
+        elseif (false !== $this->providerIsActive() && false === empty($cacheKey))
         {
             $prefix = '';
 
-            if (isset(self::$providers[$this->currentProvider]['prefix']))
+            if (false !== isset(self::$providers[$this->currentProvider]['prefix']))
             {
                 $prefix = self::$providers[$this->currentProvider]['prefix'];
             }
 
-            /**
-             * TODO: Transformar este switch en adaptadores independientes
-             */
             switch ($this->currentProvider)
             {
                 case 'apc':
@@ -231,21 +219,19 @@ class Cache extends Core
                     break;
 
                 case 'memcache':
-                    /** @var DoctrineCache\MemcacheCache $instance */
-                    $instance = &self::$providerInstances[$this->currentProvider];
-                    $result   = $instance->getMemcache()->get($prefix . $cacheKey);
-                    break;
-
                 case 'memcached':
-                    /** @var DoctrineCache\MemcachedCache $instance */
-                    $instance = &self::$providerInstances[$this->currentProvider];
-                    $result   = $instance->getMemcached()->get($prefix . $cacheKey);
-                    break;
-
                 case 'redis':
-                    /** @var DoctrineCache\RedisCache $instance */
+                    /** @var DoctrineCache\CacheProvider $instance */
                     $instance = &self::$providerInstances[$this->currentProvider];
-                    $result   = $instance->getRedis()->get($prefix . $cacheKey);
+
+                    if (false !== $instance->contains($prefix . $cacheKey))
+                    {
+                        $result = $instance->fetch($prefix . $cacheKey);
+                    }
+                    else
+                    {
+                        $result = self::EMPTY_CACHE_STRING;
+                    }
                     break;
 
                 default:
@@ -282,17 +268,21 @@ class Cache extends Core
      */
     public function setCache($cacheKey = '', $cacheValue = null, $cacheExpire = null)
     {
-        if (Config::getConfig()->cache['active'] && $this->providerIsActive() && !empty($cacheKey))
+        if (false === Config::getConfig()->cache['active'])
+        {
+            trigger_error('La caché está desactivada, proveedor sin uso: ' . $this->currentProvider, E_USER_WARNING);
+        }
+        elseif (false !== $this->providerIsActive() && false === empty($cacheKey))
         {
             /**
              * Fix para poder cachear valores vacíos y evitar consultarlos siempre
              */
-            if ($cacheValue === false || $cacheValue === null)
+            if (false === $cacheValue || null === $cacheValue)
             {
                 $cacheValue = self::EMPTY_CACHE_STRING;
             }
 
-            if (isset($cacheExpire))
+            if (false !== isset($cacheExpire))
             {
                 $cacheExpire = intval($cacheExpire);
             }
@@ -301,9 +291,6 @@ class Cache extends Core
                 $cacheExpire = Config::getConfig()->cache['default_expire'];
             }
 
-            /**
-             * TODO: Transformar este switch en adaptadores independientes
-             */
             switch ($this->currentProvider)
             {
                 case 'apc':
@@ -311,30 +298,11 @@ class Cache extends Core
                     break;
 
                 case 'memcache':
-                    if (is_bool($cacheValue) || is_int($cacheValue) || is_float($cacheValue))
-                    {
-                        $compressed = false;
-                    }
-                    else
-                    {
-                        $compressed = MEMCACHE_COMPRESSED;
-                    }
-
-                    /** @var DoctrineCache\MemcacheCache $instance */
-                    $instance = &self::$providerInstances[$this->currentProvider];
-                    $instance->getMemcache()->set($cacheKey, $cacheValue, $compressed, $cacheExpire);
-                    break;
-
                 case 'memcached':
-                    /** @var DoctrineCache\MemcachedCache $instance */
-                    $instance = &self::$providerInstances[$this->currentProvider];
-                    $instance->getMemcached()->set($cacheKey, $cacheValue, $cacheExpire);
-                    break;
-
                 case 'redis':
-                    /** @var DoctrineCache\RedisCache $instance */
+                    /** @var DoctrineCache\CacheProvider $instance */
                     $instance = &self::$providerInstances[$this->currentProvider];
-                    $instance->getRedis()->set($cacheKey, $cacheValue, $cacheExpire);
+                    $instance->save($cacheKey, $cacheValue, $cacheExpire);
                     break;
 
                 default:
@@ -353,7 +321,7 @@ class Cache extends Core
     {
         foreach ($fields as $field)
         {
-            if (isset(self::$providers[$this->currentProvider][$field]) === false)
+            if (false === isset(self::$providers[$this->currentProvider][$field]))
             {
                 trigger_error(
                     sprintf('Falta configuración de "%s" en "%s"', $field, $this->currentProvider),
@@ -372,7 +340,7 @@ class Cache extends Core
     {
         if (Config::getConfig()->cache['active'])
         {
-            if (empty($provider))
+            if (false !== empty($provider))
             {
                 $provider = Config::getConfig()->cache['default_provider'];
             }
@@ -380,7 +348,7 @@ class Cache extends Core
             /**
              * Solo funcionamos con proveedores soportados, si no petate
              */
-            if (in_array($provider, array_keys(self::$providers)))
+            if (false !== in_array($provider, array_keys(self::$providers)))
             {
                 $host                  = null;
                 $port                  = null;
@@ -389,7 +357,7 @@ class Cache extends Core
                 /**
                  * Sólo se marca el estado de activo/inactivo la primera vez
                  */
-                if (isset(self::$providerStatus[$this->currentProvider]) === false)
+                if (false === isset(self::$providerStatus[$this->currentProvider]))
                 {
                     $this->checkRequiredProviderFields(array('active'));
                     $this->setProviderStatus(self::$providers[$this->currentProvider]['active']);
@@ -398,7 +366,7 @@ class Cache extends Core
                 /**
                  * Sólo inicializamos la instancia la primera vez, el resto usamos la instancia estática
                  */
-                if ($this->providerIsActive() && isset(self::$providerInstances[$this->currentProvider]) === false)
+                if ($this->providerIsActive() && false === isset(self::$providerInstances[$this->currentProvider]))
                 {
                     /**
                      * Cargamos toda la configuración disponible en el proveedor
@@ -424,12 +392,13 @@ class Cache extends Core
 
                         case 'memcache':
                             $this->checkRequiredProviderFields(array('host', 'port'));
-                            $instance = new DoctrineCache\MemcacheCache();
-                            $instance->setMemcache(new \Memcache());
-                            $instance->setNamespace(self::DEFAULT_CACHE_NAMESPACE);
+                            $memcache = new \Memcache();
 
-                            if ($instance->getMemcache()->connect($host, $port) !== false)
+                            if (false !== $memcache->connect($host, $port))
                             {
+                                $instance = new DoctrineCache\MemcacheCache();
+                                $instance->setMemcache($memcache);
+                                $instance->setNamespace(self::DEFAULT_CACHE_NAMESPACE);
                                 self::$providerInstances[$this->currentProvider] = &$instance;
                             }
                             else
@@ -441,11 +410,13 @@ class Cache extends Core
 
                         case 'memcached':
                             $this->checkRequiredProviderFields(array('host', 'port'));
-                            $instance = new DoctrineCache\MemcachedCache();
-                            $instance->setMemcached(new \Memcached());
+                            $memcached = new \Memcached();
 
-                            if ($instance->getMemcached()->addServer($host, $port) !== false)
+                            if (false !== $memcached->addServer($host, $port))
                             {
+                                $instance = new DoctrineCache\MemcachedCache();
+                                $instance->setMemcached($memcached);
+                                $instance->setNamespace(self::DEFAULT_CACHE_NAMESPACE);
                                 self::$providerInstances[$this->currentProvider] = &$instance;
                             }
                             else
@@ -457,13 +428,13 @@ class Cache extends Core
 
                         case 'redis':
                             $this->checkRequiredProviderFields(array('host', 'port'));
-                            $redis    = new \Redis();
-                            $instance = new DoctrineCache\RedisCache();
-                            $redis->connect($host, $port);
-                            $instance->setRedis($redis);
+                            $redis = new \Redis();
 
-                            if ($instance->getRedis()->connect($host, $port) !== false)
+                            if (false !== $redis->connect($host, $port))
                             {
+                                $instance = new DoctrineCache\RedisCache();
+                                $instance->setRedis($redis);
+                                $instance->setNamespace(self::DEFAULT_CACHE_NAMESPACE);
                                 self::$providerInstances[$this->currentProvider] = &$instance;
                             }
                             else
