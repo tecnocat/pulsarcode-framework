@@ -3,6 +3,7 @@
 namespace Pulsarcode\Framework\Core;
 
 use Pulsarcode\Framework\Cache\Cache;
+use Pulsarcode\Framework\Config\Config;
 use Pulsarcode\Framework\Database\Database;
 use Pulsarcode\Framework\Database\MSSQLWrapper;
 use Pulsarcode\Framework\Error\Error;
@@ -135,6 +136,160 @@ class Core
          * TODO: Hasta hacer una tabla o similar para mostrar la información de arriba usar el parseo de errores
          */
         Error::parseErrors();
+    }
+
+    /**
+     * Devuelve una barra de información HTML sólo a desarrolladores
+     *
+     * @return string
+     */
+    public static function toolbar()
+    {
+        $toolbar  = Router::getRequest()->cookies->get('DeveloperToolbar');
+        $remoteIp = Router::getRequest()->server->get('REMOTE_ADDR');
+        $serverIp = Router::getRequest()->server->get('SERVER_ADDR');
+        $develIps = explode('|', Config::getConfig()->debug['ips']);
+        $result   = '';
+
+        if (false === Config::getConfig()->cache['active'])
+        {
+            trigger_error('La caché está deshabilitada para poder mostrar el toolbar', E_USER_NOTICE);
+        }
+        /**
+         * TODO: Hacer este check en un método para poder ser llamado por otros y guardar datos si es Developer
+         */
+        elseif (false !== in_array($remoteIp, $develIps) && false !== isset($toolbar) && 'enabled' === $toolbar)
+        {
+            $cacheMemcache  = new Cache('memcache');
+            $cacheMemcached = new Cache('memcached');
+            $cacheRedis     = new Cache('redis');
+            $repositoryTag  = $cacheRedis->getCache('CURRENT_REPOSITORY_TAG');
+            $submoduleTag   = $cacheRedis->getCache('CURRENT_SUBMODULE_TAG');
+            $memcacheStats  = $cacheMemcache->getStats();
+            $memcachedStats = $cacheMemcached->getStats();
+            $redisStats     = $cacheRedis->getStats();
+
+            function getDriverUptime($uptime)
+            {
+                $uptime  = ($uptime) ?: 1;
+                $seconds = $uptime % 60;
+                $minutes = floor(($uptime % 3600) / 60);
+                $hours   = floor(($uptime % 86400) / 3600);
+                $days    = floor(($uptime % 2592000) / 86400);
+
+                if (1 == $days)
+                {
+                    $result = sprintf('%d day %02d:%02d:%02d', $days, $hours, $minutes, $seconds);
+                }
+                elseif (1 < $days)
+                {
+                    $result = sprintf('%d days %02d:%02d:%02d', $days, $hours, $minutes, $seconds);
+                }
+                else
+                {
+                    $result = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                }
+
+                return $result;
+            }
+
+            function getDriverAccuracy($hits, $misses)
+            {
+                if (0 == $hits && 0 == $misses)
+                {
+                    return 'UNKNOWN (hits 0/miss 0)';
+                }
+                else
+                {
+                    return sprintf('%.5f%% (hits %d/miss %d)', 100 - (($misses / $hits) * 100), $hits, $misses);
+                }
+            }
+
+            function getDriverUsage($used, $total)
+            {
+                $total = ($total) ?: 0;
+
+                if (0 == $total)
+                {
+                    $used = ($used / 1048576);
+
+                    return sprintf('UNKNOWN (used %.3fmb/total UKNOWN)', $used);
+                }
+                else
+                {
+                    $used  = ($used / 1048576);
+                    $total = ($total / 1048576);
+
+                    return sprintf('%.5f%% (used %.3fmb/total %.3fmb)', (($used / $total) * 100), $used, $total);
+                }
+            }
+
+            $memcacheBanner  = sprintf(
+                'Uptime %s, Accuracy: %s, Usage: %s',
+                getDriverUptime($memcacheStats['uptime']),
+                getDriverAccuracy($memcacheStats['hits'], $memcacheStats['misses']),
+                getDriverUsage($memcacheStats['memory_usage'], $memcacheStats['memory_available'])
+            );
+            $memcachedBanner = sprintf(
+                'Uptime %s, Accuracy: %s, Usage: %s',
+                getDriverUptime($memcachedStats['uptime']),
+                getDriverAccuracy($memcachedStats['hits'], $memcachedStats['misses']),
+                getDriverUsage($memcachedStats['memory_usage'], $memcachedStats['memory_available'])
+            );
+            $redisBanner     = sprintf(
+                'Uptime %s, Accuracy: %s, Usage: %s',
+                getDriverUptime($redisStats['uptime']),
+                getDriverAccuracy($redisStats['hits'], $redisStats['misses']),
+                getDriverUsage($redisStats['memory_usage'], $redisStats['memory_available'])
+            );
+
+            if (false === $repositoryTag)
+            {
+                $repositoryTag = trim(
+                    file_get_contents(
+                        Config::getConfig()->paths['root'] . DIRECTORY_SEPARATOR . 'CURRENT_REPOSITORY_TAG'
+                    )
+                );
+                $cacheRedis->setCache('CURRENT_REPOSITORY_TAG', $repositoryTag, 300);
+            }
+
+            if (false === $submoduleTag)
+            {
+                $submoduleTag = trim(
+                    file_get_contents(
+                        Config::getConfig()->paths['root'] . DIRECTORY_SEPARATOR . 'CURRENT_SUBMODULE_TAG'
+                    )
+                );
+                $cacheRedis->setCache('CURRENT_SUBMODULE_TAG', $submoduleTag, 300);
+            }
+
+            $template = '
+                <div class="DeveloperToolbar" style="margin:0;padding:10px;background-color:#101010;color:#00f000;">
+                    <h1>[Developer Toolbar]</h1>
+                    <br />
+                    <h2>Your IP: :remoteIp, Server IP: :serverIp, Repository Tag: :repositoryTag, Submodule Tag: :submoduleTag</h2>
+                    <br />
+                    <h2>Cache System Status</h2>
+                    <pre style="font-family:DejaVu Sans Mono,Verdana,Tahoma;color:#f0f000;border:solid 1px red;margin:10px;padding:10px;word-wrap:break-word;">
+Memcache:  :memcache_banner
+Memcached: :memcached_banner
+Redis:     :redis_banner</pre>
+                </div>
+            ';
+            $tokens   = array(
+                ':remoteIp'         => $remoteIp,
+                ':serverIp'         => $serverIp,
+                ':repositoryTag'    => $repositoryTag,
+                ':submoduleTag'     => $submoduleTag,
+                ':memcache_banner'  => $memcacheBanner,
+                ':memcached_banner' => $memcachedBanner,
+                ':redis_banner'     => $redisBanner,
+            );
+
+            $result = strtr($template, $tokens);
+        }
+
+        return $result;
     }
 
     /**
