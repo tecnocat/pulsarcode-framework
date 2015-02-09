@@ -260,6 +260,46 @@ class Cache extends Core
     }
 
     /**
+     * Obtiene las estadísticas del driver instanciado
+     *
+     * @return array|null
+     */
+    public function getStats()
+    {
+        $result = array();
+
+        if (false === Config::getConfig()->cache['active'])
+        {
+            trigger_error('La caché está desactivada, proveedor sin uso: ' . $this->currentProvider, E_USER_WARNING);
+        }
+        elseif (false !== $this->providerIsActive())
+        {
+            switch ($this->currentProvider)
+            {
+                case 'apc':
+                    /**
+                     * TODO: Not yet implemented / supported
+                     */
+                    break;
+
+                case 'memcache':
+                case 'memcached':
+                case 'redis':
+                    /** @var DoctrineCache\CacheProvider $instance */
+                    $instance = &self::$providerInstances[$this->currentProvider];
+                    $result   = $instance->getStats();
+                    break;
+
+                default:
+                    trigger_error('Proveedor de caché desconocido: ' . $this->currentProvider, E_USER_ERROR);
+                    break;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Establece la caché con el valor y su tiempo de expiración
      *
      * @param string $cacheKey    Clave de caché a establecer
