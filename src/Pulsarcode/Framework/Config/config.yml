@@ -32,6 +32,9 @@ debug:
     # Email donde reportar los eventos o los emails enviados
     mail: %debug_mail%
 
+    # IPs de acceso permitidas a información de desarrolladores
+    ips:  %debug_ips%
+
 # Configuración de la aplicación
 application:
 

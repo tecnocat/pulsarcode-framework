@@ -10,6 +10,7 @@ deploy_roles_db_host:  root@127.0.0.1
 deploy_roles_db_root:  ~/
 
 debug_mail: root@localhost
+debug_ips:  127.0.0.1
 
 application_key:    ApplicationKey
 application_token:  ApplicationToken
