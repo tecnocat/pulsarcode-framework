@@ -6,7 +6,7 @@ use Pulsarcode\Framework\Cache\Cache;
 use Pulsarcode\Framework\Core\Core;
 use Pulsarcode\Framework\Error\Error;
 
-class CacheDriverTest extends Core
+class CacheDriversTest extends Core
 {
     public function runTest()
     {
