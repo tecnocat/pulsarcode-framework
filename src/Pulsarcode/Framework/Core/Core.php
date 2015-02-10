@@ -163,11 +163,13 @@ class Core
             $cacheMemcache  = new Cache('memcache');
             $cacheMemcached = new Cache('memcached');
             $cacheRedis     = new Cache('redis');
+            $cacheXcache    = new Cache('xcache');
             $repositoryTag  = $cacheRedis->getCache('CURRENT_REPOSITORY_TAG');
             $submoduleTag   = $cacheRedis->getCache('CURRENT_SUBMODULE_TAG');
             $memcacheStats  = $cacheMemcache->getStats();
             $memcachedStats = $cacheMemcached->getStats();
             $redisStats     = $cacheRedis->getStats();
+            $xcacheStats    = $cacheXcache->getStats();
 
             function getDriverUptime($uptime)
             {
@@ -242,6 +244,12 @@ class Core
                 getDriverAccuracy($redisStats['hits'], $redisStats['misses']),
                 getDriverUsage($redisStats['memory_usage'], $redisStats['memory_available'])
             );
+            $xcacheBanner    = sprintf(
+                'Uptime %s, Accuracy: %s, Usage: %s',
+                getDriverUptime($xcacheStats['uptime']),
+                getDriverAccuracy($xcacheStats['hits'], $xcacheStats['misses']),
+                getDriverUsage($xcacheStats['memory_usage'], $xcacheStats['memory_available'])
+            );
 
             if (false === $repositoryTag)
             {
@@ -273,7 +281,8 @@ class Core
                     <pre style="font-family:DejaVu Sans Mono,Verdana,Tahoma;color:#f0f000;border:solid 1px red;margin:10px;padding:10px;word-wrap:break-word;">
 Memcache:  :memcache_banner
 Memcached: :memcached_banner
-Redis:     :redis_banner</pre>
+Redis:     :redis_banner
+Xcache:    :xcache_banner</pre>
                 </div>
             ';
             $tokens   = array(
@@ -284,6 +293,7 @@ Redis:     :redis_banner</pre>
                 ':memcache_banner'  => $memcacheBanner,
                 ':memcached_banner' => $memcachedBanner,
                 ':redis_banner'     => $redisBanner,
+                ':xcache_banner'    => $xcacheBanner,
             );
 
             $result = strtr($template, $tokens);
