@@ -50,5 +50,7 @@ class CacheDriversTest extends Core
         $testEnd = microtime(true);
         $debugTrace .= sprintf('%sTest took %.3fms with all drivers', PHP_EOL, $testEnd - $testStart);
         Error::mail('Resultado de los test de drivers de caché', sprintf('<pre>%s</pre>', $debugTrace));
+
+        return $debugTrace;
     }
 }
