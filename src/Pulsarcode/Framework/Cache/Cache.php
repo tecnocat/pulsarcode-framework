@@ -170,9 +170,6 @@ class Cache extends Core
             switch ($this->currentProvider)
             {
                 case 'apc':
-                    apc_delete($cacheKey);
-                    break;
-
                 case 'memcache':
                 case 'memcached':
                 case 'redis':
@@ -187,6 +184,19 @@ class Cache extends Core
                     break;
             }
         }
+    }
+
+    /**
+     * Borra todas las claves de la caché
+     *
+     * @return bool
+     */
+    public function deleteAll()
+    {
+        /** @var DoctrineCache\CacheProvider $instance */
+        $instance = &self::$providerInstances[$this->currentProvider];
+
+        return $instance->deleteAll();
     }
 
     /**
@@ -213,32 +223,16 @@ class Cache extends Core
                 $prefix = self::$providers[$this->currentProvider]['prefix'];
             }
 
-            switch ($this->currentProvider)
+            /** @var DoctrineCache\CacheProvider $instance */
+            $instance = &self::$providerInstances[$this->currentProvider];
+
+            if (false !== $instance->contains($prefix . $cacheKey))
             {
-                case 'apc':
-                    $result = apc_fetch($cacheKey);
-                    break;
-
-                case 'memcache':
-                case 'memcached':
-                case 'redis':
-                case 'xcache':
-                    /** @var DoctrineCache\CacheProvider $instance */
-                    $instance = &self::$providerInstances[$this->currentProvider];
-
-                    if (false !== $instance->contains($prefix . $cacheKey))
-                    {
-                        $result = $instance->fetch($prefix . $cacheKey);
-                    }
-                    else
-                    {
-                        $result = self::EMPTY_CACHE_STRING;
-                    }
-                    break;
-
-                default:
-                    trigger_error('Proveedor de caché desconocido: ' . $this->currentProvider, E_USER_ERROR);
-                    break;
+                $result = $instance->fetch($prefix . $cacheKey);
+            }
+            else
+            {
+                $result = self::EMPTY_CACHE_STRING;
             }
 
             /**
@@ -276,27 +270,9 @@ class Cache extends Core
         }
         elseif (false !== $this->providerIsActive())
         {
-            switch ($this->currentProvider)
-            {
-                case 'apc':
-                    /**
-                     * TODO: Not yet implemented / supported
-                     */
-                    break;
-
-                case 'memcache':
-                case 'memcached':
-                case 'redis':
-                case 'xcache':
-                    /** @var DoctrineCache\CacheProvider $instance */
-                    $instance = &self::$providerInstances[$this->currentProvider];
-                    $result   = $instance->getStats();
-                    break;
-
-                default:
-                    trigger_error('Proveedor de caché desconocido: ' . $this->currentProvider, E_USER_ERROR);
-                    break;
-            }
+            /** @var DoctrineCache\CacheProvider $instance */
+            $instance = &self::$providerInstances[$this->currentProvider];
+            $result   = $instance->getStats();
         }
 
         return $result;
@@ -334,25 +310,9 @@ class Cache extends Core
                 $cacheExpire = Config::getConfig()->cache['default_expire'];
             }
 
-            switch ($this->currentProvider)
-            {
-                case 'apc':
-                    apc_store($cacheKey, $cacheValue, $cacheExpire);
-                    break;
-
-                case 'memcache':
-                case 'memcached':
-                case 'redis':
-                case 'xcache':
-                    /** @var DoctrineCache\CacheProvider $instance */
-                    $instance = &self::$providerInstances[$this->currentProvider];
-                    $instance->save($cacheKey, $cacheValue, $cacheExpire);
-                    break;
-
-                default:
-                    trigger_error('Proveedor de caché desconocido: ' . $this->currentProvider, E_USER_ERROR);
-                    break;
-            }
+            /** @var DoctrineCache\CacheProvider $instance */
+            $instance = &self::$providerInstances[$this->currentProvider];
+            $instance->save($cacheKey, $cacheValue, $cacheExpire);
         }
     }
 
@@ -490,7 +450,6 @@ class Cache extends Core
                             $instance->setNamespace(self::DEFAULT_CACHE_NAMESPACE);
                             self::$providerInstances[$this->currentProvider] = &$instance;
                             break;
-
 
                         default:
                             trigger_error('Proveedor de caché desconocido: ' . $this->currentProvider, E_USER_ERROR);
