@@ -176,6 +176,7 @@ class Cache extends Core
                 case 'memcache':
                 case 'memcached':
                 case 'redis':
+                case 'xcache':
                     /** @var DoctrineCache\CacheProvider $instance */
                     $instance = &self::$providerInstances[$this->currentProvider];
                     $instance->delete($cacheKey);
@@ -221,6 +222,7 @@ class Cache extends Core
                 case 'memcache':
                 case 'memcached':
                 case 'redis':
+                case 'xcache':
                     /** @var DoctrineCache\CacheProvider $instance */
                     $instance = &self::$providerInstances[$this->currentProvider];
 
@@ -285,6 +287,7 @@ class Cache extends Core
                 case 'memcache':
                 case 'memcached':
                 case 'redis':
+                case 'xcache':
                     /** @var DoctrineCache\CacheProvider $instance */
                     $instance = &self::$providerInstances[$this->currentProvider];
                     $result   = $instance->getStats();
@@ -340,6 +343,7 @@ class Cache extends Core
                 case 'memcache':
                 case 'memcached':
                 case 'redis':
+                case 'xcache':
                     /** @var DoctrineCache\CacheProvider $instance */
                     $instance = &self::$providerInstances[$this->currentProvider];
                     $instance->save($cacheKey, $cacheValue, $cacheExpire);
@@ -422,12 +426,9 @@ class Cache extends Core
                     switch ($this->currentProvider)
                     {
                         case 'apc':
-                            /**
-                             * Aunque esté activo depende si PHP tiene el APC habilitado
-                             * El APC no se instancia nunca, es built-in
-                             */
-                            self::$providerInstances[$this->currentProvider] = $this->currentProvider;
-                            $this->setProviderStatus(ini_get('apc.enabled'));
+                            $instance = new DoctrineCache\ApcCache();
+                            $instance->setNamespace(self::DEFAULT_CACHE_NAMESPACE);
+                            self::$providerInstances[$this->currentProvider] = &$instance;
                             break;
 
                         case 'memcache':
@@ -483,6 +484,13 @@ class Cache extends Core
                                 trigger_error('Error al conectar con ' . $this->currentProvider, E_USER_ERROR);
                             }
                             break;
+
+                        case 'xcache':
+                            $instance = new DoctrineCache\XcacheCache();
+                            $instance->setNamespace(self::DEFAULT_CACHE_NAMESPACE);
+                            self::$providerInstances[$this->currentProvider] = &$instance;
+                            break;
+
 
                         default:
                             trigger_error('Proveedor de caché desconocido: ' . $this->currentProvider, E_USER_ERROR);
