@@ -119,7 +119,7 @@ class Config extends Core
         {
             self::$config = $config;
         }
-        elseif (isset(self::$config) === false)
+        elseif (false === isset(self::$config))
         {
             /**
              * Cargamos el Yaml parser para cargar los archivos
@@ -163,12 +163,12 @@ class Config extends Core
             $parametersCacheFile  = $cachePath . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
             $parametersConfigFile = __DIR__ . DIRECTORY_SEPARATOR . self::CONFIG_FILE;
 
-            if (file_exists($parametersYamlFile) === false)
+            if (false === file_exists($parametersYamlFile))
             {
                 /**
                  * TODO: Mostrar en una template para verlo mejor
                  */
-                if (php_sapi_name() == 'cli')
+                if ('cli' === php_sapi_name())
                 {
                     $pattern = PHP_EOL . 'Missing parameters file %s' . PHP_EOL;
                 }
@@ -179,12 +179,12 @@ class Config extends Core
 
                 die(sprintf($pattern, $parametersYamlFile));
             }
-            elseif (file_exists($parametersDistFile) === false)
+            elseif (false === file_exists($parametersDistFile))
             {
                 /**
                  * TODO: Mostrar en una template para verlo mejor
                  */
-                if (php_sapi_name() == 'cli')
+                if ('cli' === php_sapi_name())
                 {
                     $pattern = PHP_EOL . 'Missing parameters dist file %s' . PHP_EOL;
                 }
@@ -198,12 +198,12 @@ class Config extends Core
             /**
              * TODO: Meter el config.yml en el Framework y hacerlo extendible
              */
-            elseif (file_exists($parametersConfigFile) === false)
+            elseif (false === file_exists($parametersConfigFile))
             {
                 /**
                  * TODO: Mostrar en una template para verlo mejor
                  */
-                if (php_sapi_name() == 'cli')
+                if ('cli' === php_sapi_name())
                 {
                     $pattern = PHP_EOL . 'Missing config file %s' . PHP_EOL;
                 }
@@ -214,38 +214,39 @@ class Config extends Core
 
                 die(sprintf($pattern, $parametersConfigFile));
             }
-            elseif ($this->checkParameters($parametersYamlFile, $parametersDistFile, $parametersErrors) === false)
+            elseif (false === file_exists($parametersCacheFile))
             {
-                /**
-                 * TODO: Mostrar en una template para verlo mejor
-                 */
-                $output = '';
+                if (false === $this->checkParameters($parametersYamlFile, $parametersDistFile, $parametersErrors))
+                {
+                    /**
+                     * TODO: Mostrar en una template para verlo mejor
+                     */
+                    $output = '';
 
-                if (php_sapi_name() == 'cli')
-                {
-                    $pattern = PHP_EOL . '%s' . PHP_EOL . PHP_EOL . '%s' . PHP_EOL;
-                }
-                else
-                {
-                    $pattern = '<h2>%s</h2><pre>%s</pre>';
+                    if ('cli' === php_sapi_name())
+                    {
+                        $pattern = PHP_EOL . '%s' . PHP_EOL . PHP_EOL . '%s' . PHP_EOL;
+                    }
+                    else
+                    {
+                        $pattern = '<h2>%s</h2><pre>%s</pre>';
+                    }
+
+                    foreach ($parametersErrors as $errorTitle => $errorContent)
+                    {
+                        $output .= sprintf($pattern, $errorTitle, implode(PHP_EOL, $errorContent));
+                    }
+
+                    if ('cli' === php_sapi_name())
+                    {
+                        die(sprintf(PHP_EOL . 'Parameters error:' . PHP_EOL . '%s', $output));
+                    }
+                    else
+                    {
+                        die(sprintf('<h1>Parameters error:</h1>%s', $output));
+                    }
                 }
 
-                foreach ($parametersErrors as $errorTitle => $errorContent)
-                {
-                    $output .= sprintf($pattern, $errorTitle, implode(PHP_EOL, $errorContent));
-                }
-
-                if (php_sapi_name() == 'cli')
-                {
-                    die(sprintf(PHP_EOL . 'Parameters error:' . PHP_EOL . '%s', $output));
-                }
-                else
-                {
-                    die(sprintf('<h1>Parameters error:</h1>%s', $output));
-                }
-            }
-            elseif (file_exists($parametersCacheFile) === false)
-            {
                 $parametersContent = $yaml->parse($parametersYamlFile);
                 $configContent     = file_get_contents($parametersConfigFile);
 
@@ -281,7 +282,7 @@ class Config extends Core
                 $basename = $pathinfo['basename'];
                 $yamlName = $pathinfo['filename'];
 
-                if (!in_array($basename, array(self::CONFIG_FILE, self::PARAMETERS_FILE, Router::ROUTES_FILE)))
+                if (false === in_array($basename, array(self::CONFIG_FILE, self::PARAMETERS_FILE, Router::ROUTES_FILE)))
                 {
                     $this->$yamlName = $yaml->parse($yamlFile);
                 }
@@ -301,7 +302,7 @@ class Config extends Core
      */
     public static function getConfig()
     {
-        if (isset(self::$instance) === false)
+        if (false === isset(self::$instance))
         {
             self::$instance = new self();
         }
@@ -353,7 +354,7 @@ class Config extends Core
 
         foreach ($testContent as $errorTitle => $diffContent)
         {
-            if (empty($diffContent) === false)
+            if (false === empty($diffContent))
             {
                 $parametersErrors[$errorTitle] = array();
 
@@ -370,7 +371,7 @@ class Config extends Core
 
         foreach ($distContent as $distKey => $distValue)
         {
-            if (isset($yamlContent[$distKey]) !== false && $distValue !== null)
+            if (false !== isset($yamlContent[$distKey]) && null !== $distValue)
             {
                 $distType = gettype($distValue);
                 $yamlType = gettype($yamlContent[$distKey]);
