@@ -13,11 +13,13 @@ class CacheDriverTest extends Core
         $cacheMemcache  = new Cache('memcache');
         $cacheMemcached = new Cache('memcached');
         $cacheRedis     = new Cache('redis');
+        $cacheXcache    = new Cache('xcache');
         $testLoops      = 5000;
         $testDrivers    = array(
             'Memcache'  => $cacheMemcache,
             'Memcached' => $cacheMemcached,
             'Redis'     => $cacheRedis,
+            'Xcache'    => $cacheXcache,
         );
         $testStart      = microtime(true);
         $debugTrace     = 'Testing ' . $testLoops . ' iterations over cache GET/SET' . PHP_EOL . PHP_EOL;
