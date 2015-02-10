@@ -95,6 +95,10 @@ cache:
             host:   %cache_redis_host%
             port:   %cache_redis_port%
 
+        # Configuración de Xcache
+        xcache:
+            active: %cache_xcache_active%
+
 # Configuración de reporte de queries
 queries:
 
