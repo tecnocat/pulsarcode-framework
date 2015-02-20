@@ -153,7 +153,7 @@ class Deploy extends Core
 
         foreach ($totalCommits as &$commits)
         {
-            $repository = (false === isset($repository)) ? 'autocasion' : 'includes';
+            $repository = (false === isset($repository)) ? 'autocasion_legacy' : 'includes';
 
             foreach ($commits as &$commit)
             {
