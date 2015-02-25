@@ -57,11 +57,6 @@ use Symfony\Component\Yaml\Yaml;
 class Config extends Core
 {
     /**
-     * Nombre de la clave de caché para la configuración
-     */
-    const CONFIG_CACHE_KEY = 'self-config-cache-key';
-
-    /**
      * Nombre del archivo de configuración
      *
      * @var string CONFIG_FILE
@@ -115,7 +110,7 @@ class Config extends Core
         {
             die('Es necesario especificar "xcache.var_size" con un valor superior a 0');
         }
-        elseif (null !== ($config = xcache_get(md5(self::CONFIG_CACHE_KEY))))
+        elseif (null !== ($config = xcache_get(md5(__FILE__))))
         {
             self::$config = $config;
         }
@@ -291,7 +286,7 @@ class Config extends Core
             /**
              * Guardamos la configuración en caché persistente
              */
-            xcache_set(md5(self::CONFIG_CACHE_KEY), self::$config, 0);
+            xcache_set(md5(__FILE__), self::$config, 0);
         }
     }
 
