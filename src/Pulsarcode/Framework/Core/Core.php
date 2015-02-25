@@ -160,12 +160,13 @@ class Core
          */
         elseif (false !== in_array($remoteIp, $develIps) && false !== isset($toolbar) && 'enabled' === $toolbar)
         {
+            $cache          = new Cache();
             $cacheMemcache  = new Cache('memcache');
             $cacheMemcached = new Cache('memcached');
             $cacheRedis     = new Cache('redis');
             $cacheXcache    = new Cache('xcache');
-            $repositoryTag  = $cacheRedis->getCache('CURRENT_REPOSITORY_TAG');
-            $submoduleTag   = $cacheRedis->getCache('CURRENT_SUBMODULE_TAG');
+            $repositoryTag  = $cache->getCache('CURRENT_REPOSITORY_TAG');
+            $submoduleTag   = $cache->getCache('CURRENT_SUBMODULE_TAG');
             $memcacheStats  = $cacheMemcache->getStats();
             $memcachedStats = $cacheMemcached->getStats();
             $redisStats     = $cacheRedis->getStats();
@@ -258,7 +259,7 @@ class Core
                         Config::getConfig()->paths['root'] . DIRECTORY_SEPARATOR . 'CURRENT_REPOSITORY_TAG'
                     )
                 );
-                $cacheRedis->setCache('CURRENT_REPOSITORY_TAG', $repositoryTag, 300);
+                $cache->setCache('CURRENT_REPOSITORY_TAG', $repositoryTag, 300);
             }
 
             if (false === $submoduleTag)
@@ -268,7 +269,7 @@ class Core
                         Config::getConfig()->paths['root'] . DIRECTORY_SEPARATOR . 'CURRENT_SUBMODULE_TAG'
                     )
                 );
-                $cacheRedis->setCache('CURRENT_SUBMODULE_TAG', $submoduleTag, 300);
+                $cache->setCache('CURRENT_SUBMODULE_TAG', $submoduleTag, 300);
             }
 
             $template = '
