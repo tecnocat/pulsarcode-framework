@@ -191,23 +191,44 @@ class Deploy extends Core
         $mailer->setBody($message);
         $mailer->send();
 
-        /**
-         * TODO: Hacer una función para este tipo de notificaciones mas amigable y menos fea
-         */
-        $notification = sprintf(
-            '[DEPLOYACO] (%s) [%s] %s (%s) %s',
-            $environment,
-            $ip,
-            current($lastRepoTag),
-            current($lastSubmoTag),
-            $host
-        );
-        exec(
-            sprintf(
-                'curl -X POST --data-urlencode \'payload={"text": "%s"}\' https://hooks.slack.com/services/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',
-                $notification
+        $json    = json_encode(
+            array(
+                'text' => sprintf(
+                    'Tirado deployaco a %s en %s [http://%s] con el tag %s y submódulo tag %s :shit:',
+                    strtoupper($environment),
+                    $host,
+                    $ip,
+                    current($lastRepoTag),
+                    current($lastSubmoTag)
+                ),
             )
         );
+        $payload = array(
+            'payload' => $json
+        );
+        $options = array(
+            CURLOPT_AUTOREFERER    => true,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_ENCODING       => '',
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HEADER         => false,
+            CURLOPT_MAXREDIRS      => 10,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($payload),
+            CURLOPT_TIMEOUT        => 6,
+            CURLOPT_RETURNTRANSFER => true,
+        );
+
+        $ch = curl_init('https://hooks.slack.com/services/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');
+        curl_setopt_array($ch, $options);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        if (false === $response)
+        {
+            echo 'Unable to send deploy notification';
+            exit(1);
+        }
     }
 
     /**
