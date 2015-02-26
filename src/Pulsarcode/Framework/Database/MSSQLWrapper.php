@@ -112,7 +112,7 @@ class MSSQLWrapper extends Core
      * @param string $dbname
      * @param bool   $persistent
      */
-    public function __construct($host, $user, $pass, $dbname, $persistent = false)
+    public function __construct($host, $user, $pass, $dbname, $persistent = true)
     {
         parent::startConnection();
         parent::__construct();
