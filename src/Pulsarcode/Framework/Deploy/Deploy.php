@@ -190,6 +190,24 @@ class Deploy extends Core
         );
         $mailer->setBody($message);
         $mailer->send();
+
+        /**
+         * TODO: Hacer una función para este tipo de notificaciones mas amigable y menos fea
+         */
+        $notification = sprintf(
+            '[DEPLOYACO] (%s) [%s] %s (%s) %s',
+            $environment,
+            $ip,
+            current($lastRepoTag),
+            current($lastSubmoTag),
+            $host
+        );
+        exec(
+            sprintf(
+                'curl -X POST --data-urlencode \'payload={"text": "%s"}\' https://hooks.slack.com/services/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',
+                $notification
+            )
+        );
     }
 
     /**
