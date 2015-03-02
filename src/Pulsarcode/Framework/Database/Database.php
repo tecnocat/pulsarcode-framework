@@ -222,6 +222,19 @@ class Database extends Core
     }
 
     /**
+     * Retorna los datos en un array asociativo o si se especifica $key sólo ese dato en concreto como objetos
+     *
+     * @return bool|null
+     */
+    public function loadResultArray($key = 0)
+    {
+        $this->getInstance()->setQuery($this->getQuery());
+        $this->getInstance()->release();
+
+        return $this->getInstance()->loadResultArray($key);
+    }
+
+    /**
      * Retorna la primera row del resultado de la query
      *
      * @return bool|null
