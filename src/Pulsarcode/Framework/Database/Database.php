@@ -103,6 +103,16 @@ class Database extends Core
     }
 
     /**
+     * Devuelve el número de filas afectadas por la ejecución anteior
+     *
+     * @return int Número de filas afectadas
+     */
+    public function getAffectedRows()
+    {
+        return $this->getInstance()->getAffectedRows();
+    }
+
+    /**
      * Devuelve una instancia de la conexión a la base de datos usando MSSQLWrapper
      *
      * @param string $connectionName Nombre de la configuración de conexión
