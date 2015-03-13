@@ -177,7 +177,8 @@ class Deploy extends Core
         );
         $mailer  = new Mail();
         $mailer->initConfig('autobot');
-        $mailer->AddAddress(Config::getConfig()->debug['mail']);
+        $mailer->addAddress(Config::getConfig()->debug['mail']);
+        $mailer->addCcAddress('r.vega@autocasion.com', 'Raúl Vega');
         $mailer->setSubject(
             sprintf(
                 '[DEPLOYACO] (%s) [%s] %s (%s) %s',
