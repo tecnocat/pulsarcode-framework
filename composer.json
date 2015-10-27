@@ -20,7 +20,7 @@
         "doctrine/dbal"              : "2.3.*",
         "phpmailer/phpmailer"        : "5.2.*",
         "sami/sami"                  : "2.0.*",
-        "twig/twig"                  : "1.16.*",
+        "twig/twig"                  : "1.22.*",
         "leaseweb/doctrine-pdo-dblib": "1.0.*"
     },
     "autoload"         : {
