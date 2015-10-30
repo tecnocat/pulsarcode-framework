@@ -61,14 +61,14 @@ class Config extends Core
      *
      * @var string CONFIG_FILE
      */
-    const CONFIG_FILE = 'config.yml';
+    const CONFIG_FILE = 'pulsarcode-config.yml';
 
     /**
      * Nombre del archivo de parámetros
      *
      * @var string PARAMETERS_FILE
      */
-    const PARAMETERS_FILE = 'parameters.yml';
+    const PARAMETERS_FILE = 'pulsarcode-parameters.yml';
 
     /**
      * Entornos permitidos para mostrar información de debug
@@ -102,15 +102,15 @@ class Config extends Core
          * Cargamos la configuración sólo la primera vez en estático y en caché persistente
          * Así evitamos penalizar el rendimiento por lectura a disco innecesariamente
          */
-        if (false === function_exists('xcache_set'))
+        if (false === class_exists('Memcached'))
         {
-            die('Es necesario habilitar XCache para esta versión del Framework');
+            die('Es necesario habilitar Memcached para esta versión del Framework');
         }
-        elseif (false === ini_get('xcache.var_size'))
-        {
-            die('Es necesario especificar "xcache.var_size" con un valor superior a 0');
-        }
-        elseif (null !== ($config = xcache_get(md5(__FILE__))))
+
+        $memcached = new \Memcached();
+        $memcached->addServer('127.0.0.1', 11211);
+
+        if (false !== ($config = $memcached->get(md5(__FILE__))))
         {
             self::$config = $config;
         }
@@ -286,7 +286,7 @@ class Config extends Core
             /**
              * Guardamos la configuración en caché persistente
              */
-            xcache_set(md5(__FILE__), self::$config, 0);
+            $memcached->set(md5(__FILE__), self::$config, 0);
         }
     }
 
